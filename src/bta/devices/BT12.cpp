@@ -1,22 +1,40 @@
 #include "bta/devices/BT12.h"
 
+BT12::BT12()
+{
+    m_PacketVerbosity = 0;
+}
+BT12::~BT12()
+{
+    // Destructor implementation if needed
+}
+
 ERROR_CODE_T BT12::SetBtaSerialDevice(shared_ptr<BTASerialDevice> pBTASerialDevice)
 {
     RETURN_EC_IF_NULL(ERROR_FAILED, pBTASerialDevice);
 
-    RETURN_IF_FAILED(pBTASerialDevice->SetBaudrate(BAUDRATE_9600));
+    ERROR_CODE_T status = pBTASerialDevice->SetBaudrate(BAUDRATE_9600);
+    RETURN_EC_IF_FAILED(status);
 
     m_pBTASerialDevice = pBTASerialDevice;
 
     return STATUS_SUCCESS;
 }
 
-
-ERROR_CODE_T BT12::GetDeviceVersion(weak_ptr<BTAVersionInfo_t> version)
+ 
+ERROR_CODE_T BT12::GetDeviceVersion(shared_ptr<BTAVersionInfo_t>& version)
 {
+    if (m_versionInfo.get() != NULL) 
+    {
+        version = m_versionInfo;
+        return STATUS_SUCCESS;
+    }
+
     vector<string> retStrings;
+    shared_ptr<BTAVersionInfo_t> localVersion = make_shared<BTAVersionInfo_t>();
+
     RETURN_EC_IF_NULL(ERROR_FAILED, m_pBTASerialDevice);
-    RETURN_EC_IF_NULL(ERROR_FAILED, version.lock());
+    RETURN_EC_IF_NULL(ERROR_FAILED, version);
 
     /*
         Sierra Wireless Copyright 2018
@@ -31,18 +49,16 @@ ERROR_CODE_T BT12::GetDeviceVersion(weak_ptr<BTAVersionInfo_t> version)
     RETURN_EC_IF_TRUE(ERROR_FAILED, retStrings.size() < 5);
     const string expectedDevice = "Sierra Wireless";
 
-    // Assert ret strings first stringf contains IOT747
-    if (retStrings[0].find(expectedDevice) == string::npos) {
+    // Assert ret strings first string contains Sierra Wireless
+    if (retStrings[0].find(expectedDevice) == string::npos)
+    {
         DebugPrintf(m_PacketVerbosity, DEBUG_NO_LOGGING, m_DebugID, "Expected to find %s in %s\n", expectedDevice.c_str(), retStrings[0].c_str());
         return ERROR_FAILED;
     }
-    if (retStrings[1].find("MELODY AUDIO") != string::npos) {
-        version.lock()->hardware = BTA_HW_BT12;
-        version.lock()->BT12FwRev = BT12_FW_REV_UNKNOWN;
-    } else {
-        DebugPrintf(m_PacketVerbosity, DEBUG_NO_LOGGING, m_DebugID, "Expected to find %s in %s\n", expectedDevice.c_str(), retStrings[1].c_str());
-        return ERROR_FAILED;
-    }
+
+    // Now that we've identified that it is the BT12, we can safely set our version
+    localVersion->hardware = BTA_HW_BT12;
+    version = localVersion;
 
     return ERROR_FAILED;
 }

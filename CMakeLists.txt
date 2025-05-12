@@ -31,4 +31,12 @@ file(GLOB_RECURSE SOURCES
     src/port/${PLATFORM}/*.cpp
 )
 
+#only include test if it's defined
+if(DEFINED TEST)
+    enable_testing()
+    # Add tests
+    add_subdirectory(test)
+endif()
+
+
 add_executable(BTAudioCard ${SOURCES})

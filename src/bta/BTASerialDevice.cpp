@@ -156,7 +156,12 @@ ERROR_CODE_T BTASerialDevice::SetBaudrate(BAUDRATE baudrate)
 {
     shared_ptr<IUart> pUart = m_pUart.lock();
     RETURN_EC_IF_NULL(ERROR_NOT_INITIALIZED, pUart);
-    RETURN_EC_IF_TRUE(STATUS_SUCCESS, m_curBaudrate == baudrate);
+    
+    if (m_curBaudrate == baudrate)
+    {
+        return STATUS_SUCCESS;
+    }
+    
     RETURN_IF_FAILED(pUart->Close());
     RETURN_IF_FAILED(pUart->Open(baudrate, BYTE_SZ_8, NO_PARITY, STOP_BITS_1));
     m_curBaudrate = baudrate;
@@ -1158,8 +1163,7 @@ ERROR_CODE_T BTASerialDevice::ReceiveData(list<string> &responses, INT32U timeou
         ProcessUnsolicitedMessage(*it);
     }
 
-    RETURN_EC_IF_FALSE(ERROR_OPERATION_TIMED_OUT, acknowledgeReceived);
-    return STATUS_SUCCESS;
+    return acknowledgeReceived ? STATUS_SUCCESS : ERROR_OPERATION_TIMED_OUT;
 }
 
 /********************************************************************************************************

@@ -88,7 +88,7 @@ ERROR_CODE_T CuArt::Open(BAUDRATE Baud, BYTE_SIZE ByteSize, PARITY Parity, STOP_
     // Minimum number of characters for non-canonical read
     options.c_cc[VMIN] = 0;
     // Timeout in deciseconds (e.g., 10 = 1 second)
-    options.c_cc[VTIME] = 10;
+    options.c_cc[VTIME] = 1;
 
     // Apply settings
     tcsetattr(m_Fd, TCSANOW, &options);

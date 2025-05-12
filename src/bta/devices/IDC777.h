@@ -13,7 +13,7 @@ public:
     ~IDC777();
 
     ERROR_CODE_T SetBtaSerialDevice(shared_ptr<BTASerialDevice> pBTASerialDevice);
-    ERROR_CODE_T GetDeviceVersion(weak_ptr<BTAVersionInfo_t> version);
+    ERROR_CODE_T GetDeviceVersion(shared_ptr<BTAVersionInfo_t>& version);
 private:
     const string m_debugId = "IDC777";
 };

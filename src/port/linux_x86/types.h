@@ -95,6 +95,23 @@
         } \
     } while (0)
 
+#define RETURN_NULL_IF_FAILED(ec) \
+    do { \
+        if ((ec) != STATUS_SUCCESS) { \
+            printf("RETURN_EC_IF_FAILED: %s:%d -> failed with %d\n", __FILENAME__, __LINE__, (ec)); \
+            return NULL; \
+        } \
+    } while (0)
+
+#define RETURN_NULL_IF_NULL(check) \
+    do { \
+        if (check == NULL) { \
+            printf("RETURN_NULL_IF_NULL: %s:%d -> failed\n", __FILENAME__, __LINE__); \
+            return NULL; \
+        } \
+    } while (0)
+
+
 // Debug
 #define DEBUG_NO_LOGGING 0
 #define DEBUG_TRACE_MESSAGE 1
@@ -107,10 +124,11 @@
 // Printing
 #define DebugPrintf(verbosity, logLevel, debugID, format, ...) \
     do { \
-        if (verbosity >= logLevel) { \
-            printf(format, __VA_ARGS__); \
+        if ((verbosity) >= (logLevel)) { \
+            printf(format, ##__VA_ARGS__); \
         } \
     } while (0)
+
 
 typedef enum
 {

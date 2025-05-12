@@ -47,26 +47,20 @@ public:
 };
 
 
-
-
 class BTADeviceDriver
 {
 public:
-    BTADeviceDriver() 
-    {
-        m_PacketVerbosity = 0;
-    }
+    BTADeviceDriver();
     ~BTADeviceDriver();
 
-
     virtual ERROR_CODE_T SetBtaSerialDevice(shared_ptr<BTASerialDevice> pBTASerialDevice) = 0;
-    
+    virtual ERROR_CODE_T GetDeviceVersion(shared_ptr<BTAVersionInfo_t>& version) = 0;
+
     virtual ERROR_CODE_T EnterCommandMode();
     virtual ERROR_CODE_T SendReset();
-    virtual ERROR_CODE_T GetDeviceVersion(weak_ptr<BTAVersionInfo_t> version) = 0;
-
 protected:
     shared_ptr<BTASerialDevice> m_pBTASerialDevice;
+    shared_ptr<BTAVersionInfo_t> m_versionInfo;
 
     BTAVersionInfo_t version;
     INT8U m_PacketVerbosity;
