@@ -1,7 +1,7 @@
 #include "types.h"
 
 #include "BTADeviceFactory.h"
-#include "BT12.h"
+#include "BC127.h"
 #include "IDC777.h"
 
 shared_ptr<BTADeviceDriver> BTADeviceFactory::CreateBTADeviceDriver(shared_ptr<BTASerialDevice> pBTASerialDevice)
@@ -44,9 +44,9 @@ shared_ptr<BTADeviceDriver> BTADeviceFactory::CreateBTADeviceDriver(shared_ptr<B
         return driver;
     }
 
-    if (auto driver = tryCreateDriver(make_shared<BT12>(), BTA_HW_BT12))
+    if (auto driver = tryCreateDriver(make_shared<BC127>(), BTA_HW_BC127))
     {
-        DebugPrintf(DEBUG_TRACE_INFO, DEBUG_TRACE_INFO, "BTADeviceFactory", "Creating a BT12 device\n");
+        DebugPrintf(DEBUG_TRACE_INFO, DEBUG_TRACE_INFO, "BTADeviceFactory", "Creating a BC127 device\n");
         return driver;
     }
 

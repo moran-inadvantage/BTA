@@ -9,7 +9,7 @@ using namespace std;
 
 typedef enum
 {
-    BTA_HW_BT12,
+    BTA_HW_BC127,
     BTA_HW_IDC777,
     BTA_HW_UNKNOWN,
 } BTAHardware_t;
@@ -21,14 +21,14 @@ typedef enum
 
 typedef enum
 {
-    BT12_FW_REV_UNKNOWN,
-    BT12_FW_REV_6_1_2,
-    BT12_FW_REV_6_1_5,
-    BT12_FW_REV_7_0,
-    BT12_FW_REV_7_1,
-    BT12_FW_REV_7_2,
-    BT12_FW_REV_7_3,
-} BT12FirmwareRevision_t;
+    BC127_FW_REV_UNKNOWN,
+    BC127_FW_REV_6_1_2,
+    BC127_FW_REV_6_1_5,
+    BC127_FW_REV_7_0,
+    BC127_FW_REV_7_1,
+    BC127_FW_REV_7_2,
+    BC127_FW_REV_7_3,
+} BC127FirmwareRevision_t;
 
 class BTAVersionInfo_t
 {
@@ -39,7 +39,7 @@ public:
     }
     BTAHardware_t hardware;
     union {
-        BT12FirmwareRevision_t BT12FwRev;
+        BC127FirmwareRevision_t BC127FwRev;
         IDC777FirmwareRevision_t IDC777fwRev;
     };
 
@@ -53,8 +53,8 @@ public:
     {
         switch (hardware)
         {
-        case BTA_HW_BT12:
-            return "BT12";
+        case BTA_HW_BC127:
+            return "BC127";
         case BTA_HW_IDC777:
             return "IDC777";
         default:
@@ -93,9 +93,9 @@ public:
         if (hardware == BTA_HW_IDC777)
         {
             version->IDC777fwRev = this->IDC777fwRev;
-        } else if (hardware == BTA_HW_BT12)
+        } else if (hardware == BTA_HW_BC127)
         {
-            version->BT12FwRev = this->BT12FwRev;
+            version->BC127FwRev = this->BC127FwRev;
         }
     }
 };

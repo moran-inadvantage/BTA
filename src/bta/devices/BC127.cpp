@@ -1,15 +1,15 @@
-#include "BT12.h"
+#include "BC127.h"
 
-BT12::BT12()
+BC127::BC127()
 {
     m_PacketVerbosity = 0;
 }
-BT12::~BT12()
+BC127::~BC127()
 {
     // Destructor implementation if needed
 }
 
-ERROR_CODE_T BT12::SetAndOpenBtaSerialDevice(shared_ptr<BTASerialDevice> pBTASerialDevice)
+ERROR_CODE_T BC127::SetAndOpenBtaSerialDevice(shared_ptr<BTASerialDevice> pBTASerialDevice)
 {
     RETURN_EC_IF_NULL(ERROR_FAILED, pBTASerialDevice);
 
@@ -21,7 +21,7 @@ ERROR_CODE_T BT12::SetAndOpenBtaSerialDevice(shared_ptr<BTASerialDevice> pBTASer
     return STATUS_SUCCESS;
 }
 
-ERROR_CODE_T BT12::GetDeviceVersion(shared_ptr<BTAVersionInfo_t>& version)
+ERROR_CODE_T BC127::GetDeviceVersion(shared_ptr<BTAVersionInfo_t>& version)
 {
     if (m_versionInfo.get() != NULL) 
     {
@@ -46,13 +46,13 @@ ERROR_CODE_T BT12::GetDeviceVersion(shared_ptr<BTAVersionInfo_t>& version)
     return STATUS_SUCCESS;
 }
 
-void BT12::ParseVersionStrings(const vector<string>& retStrings)
+void BC127::ParseVersionStrings(const vector<string>& retStrings)
 {
     for (const auto& line : retStrings)
     {
         if (line.find("Melody Audio") != string::npos && line.find("V") != string::npos)
         {
-            m_BtFwVersion.hardware = BTA_HW_BT12;
+            m_BtFwVersion.hardware = BTA_HW_BC127;
             m_BtFwVersion.versionString = line;
 
             size_t vPos = line.find("V");
@@ -97,7 +97,7 @@ void BT12::ParseVersionStrings(const vector<string>& retStrings)
     }
 }
 
-BAUDRATE* BT12::GetBaudrateList(INT32U* length)
+BAUDRATE* BC127::GetBaudrateList(INT32U* length)
 {
     static BAUDRATE preferredBaudRates[] = { 
         BAUDRATE_9600,
