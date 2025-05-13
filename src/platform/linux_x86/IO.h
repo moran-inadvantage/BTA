@@ -2,10 +2,11 @@
 
 #include <memory>
 
-#include "bta/BTAStatusTable.h"
 #include "types.h"
 
 using namespace std;
+
+class IBTAdapterStatusTable;
 
 class IAVDSNode
 {

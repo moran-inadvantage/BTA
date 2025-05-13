@@ -124,7 +124,7 @@
 // Printing
 #define DebugPrintf(verbosity, logLevel, debugID, format, ...) \
     do { \
-        if ((verbosity) >= (logLevel)) { \
+        if ((verbosity) >= (100)) { \
             printf(format, ##__VA_ARGS__); \
         } \
     } while (0)

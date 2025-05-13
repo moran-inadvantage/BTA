@@ -1,4 +1,4 @@
-#include "bta/devices/IDC777.h"
+#include "IDC777.h"
 
 IDC777::IDC777()
 {
@@ -34,7 +34,6 @@ ERROR_CODE_T IDC777::GetDeviceVersion(shared_ptr<BTAVersionInfo_t>& version)
     shared_ptr<BTAVersionInfo_t> localVersion = make_shared<BTAVersionInfo_t>();
 
     RETURN_EC_IF_NULL(ERROR_FAILED, m_pBTASerialDevice);
-    RETURN_EC_IF_NULL(ERROR_FAILED, version);
 
     /*
         Expected Output

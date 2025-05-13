@@ -15,28 +15,18 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
 endif()
 
-# Include common headers
-include_directories(
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/interfaces
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/port/${PLATFORM}
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/port/${PLATFORM}/Boost
-)
+add_subdirectory(src)
 
-# Gather source files
-file(GLOB_RECURSE SOURCES
-    src/*.cpp
-    src/bta/*.cpp
-    src/bta/devices/*.cpp
-    src/port/${PLATFORM}/*.cpp
-)
-
-#only include test if it's defined
-if(DEFINED TEST)
+# Run with cmake -B build -DENABLE_TESTS=ON && make -C build
+option(ENABLE_TESTS "Enable building of tests" OFF)
+# Only add tests if ENABLE_TESTS is ON
+if(ENABLE_TESTS)
     enable_testing()
-    # Add tests
+    add_subdirectory(External/googletest)
     add_subdirectory(test)
 endif()
 
-
-add_executable(BTAudioCard ${SOURCES})
+# Add executable
+add_executable(BTAudioCard ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp)
+# Link libraries
+target_link_libraries(BTAudioCard BTA)

@@ -1,0 +1,48 @@
+macro(create_gtest)
+    set(options)
+    set(oneValueArgs TESTNAME)
+    set(multiValueArgs EXTRA_SOURCES MOCK_HEADERS)
+    cmake_parse_arguments(UNITTEST "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+    # Paths
+    set(TEST_SRC ${CMAKE_CURRENT_SOURCE_DIR}/${UNITTEST_TESTNAME}_test.cpp)
+    set(MAIN_SRC ${CMAKE_SOURCE_DIR}/src/bta/devices/${UNITTEST_TESTNAME}.cpp)
+
+    # Initialize SOURCES list
+    set(SOURCES ${TEST_SRC} ${MAIN_SRC})
+
+    # Add manually specified mock sources from test/mocks/
+    foreach(MOCK_SOURCE IN LISTS UNITTEST_MOCK_HEADERS)
+        list(APPEND SOURCES ${CMAKE_SOURCE_DIR}/test/mocks/${MOCK_SOURCE})
+    endforeach()
+
+    # Add any additional extra sources
+    foreach(EXTRA_SRC IN LISTS UNITTEST_EXTRA_SOURCES)
+        list(APPEND SOURCES  ${CMAKE_SOURCE_DIR}/src/${EXTRA_SRC})
+    endforeach()
+
+    # Executable
+    add_executable(${UNITTEST_TESTNAME}_tests ${SOURCES})
+
+    # Includes
+    target_include_directories(${UNITTEST_TESTNAME}_tests PRIVATE
+        ${CMAKE_SOURCE_DIR}/src/bta
+        ${CMAKE_SOURCE_DIR}/src/bta/devices
+        ${CMAKE_SOURCE_DIR}/src/platform/linux_x86
+        ${CMAKE_SOURCE_DIR}/src/platform/linux_x86/interfaces
+        ${CMAKE_SOURCE_DIR}/External/googletest/googletest/include
+        ${CMAKE_SOURCE_DIR}/External/googletest/googlemock/include
+        ${CMAKE_SOURCE_DIR}/test/mocks
+    )
+
+    # Link test binary
+    target_link_libraries(${UNITTEST_TESTNAME}_tests
+        PRIVATE
+        gtest_main
+        gmock_main
+    )
+
+    # Test discovery
+    include(GoogleTest)
+    gtest_discover_tests(${UNITTEST_TESTNAME}_tests)
+endmacro()

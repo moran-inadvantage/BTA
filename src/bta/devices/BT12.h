@@ -1,8 +1,8 @@
 #pragma once
 
 #include "types.h"
-#include "bta/BTADeviceDriver.h"
-#include "bta/BTASerialDevice.h"
+#include "BTADeviceDriver.h"
+#include "BTASerialDevice.h"
 
 class BT12 : public BTADeviceDriver
 {

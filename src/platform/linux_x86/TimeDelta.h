@@ -6,9 +6,9 @@ class CTimeDeltaSec
 {
 public:
     CTimeDeltaSec( INT16U deltaTimeSec = 0 );
-    void ResetTime( INT16U deltaTimeSec );
-    INT16U GetElapsedTime();
-    BOOLEAN IsTimeExpired();
+    virtual void ResetTime( INT16U deltaTimeSec );
+    virtual INT16U GetElapsedTime();
+    virtual BOOLEAN IsTimeExpired();
 
 private:
     // State data
@@ -23,12 +23,12 @@ class CTimeDelta
 public:
 
     CTimeDelta( INT16U deltaTimeMsecs = 0 );
-    void ResetTime( INT16U deltaTimeMsecs );
-    void ResetTimeOSTicks( INT16U deltaTimeOSTicks );
-    INT16U GetElapsedTime();
-    INT16U GetElapsedTimeOSTicks();
-    void WaitTimeElapsed();
-    BOOLEAN IsTimeExpired();
+    virtual void ResetTime( INT16U deltaTimeMsecs );
+    virtual void ResetTimeOSTicks( INT16U deltaTimeOSTicks );
+    virtual INT16U GetElapsedTime();
+    virtual INT16U GetElapsedTimeOSTicks();
+    virtual void WaitTimeElapsed();
+    virtual BOOLEAN IsTimeExpired();
 
 private:
 
@@ -46,11 +46,11 @@ public:
     CTimeDeltaUs( INT16U deltaTimeUs = 0 );
     static void GetTickCountUs( INT32U *pSeconds, INT32U *pUSeconds );
     static void GetTickCountUsAdjusted( INT32U *pSeconds, INT32U *pUSeconds );
-    void ResetTime( INT16U deltaTimeUs );
-    void ResetTimeOSTicks( INT16U deltaTimeOSTicks );
-    INT16U GetElapsedTime();
-    INT16U GetElapsedTimeOSTicks();
-    BOOLEAN IsTimeExpired();
+    virtual void ResetTime( INT16U deltaTimeUs );
+    virtual void ResetTimeOSTicks( INT16U deltaTimeOSTicks );
+    virtual INT16U GetElapsedTime();
+    virtual INT16U GetElapsedTimeOSTicks();
+    virtual BOOLEAN IsTimeExpired();
 
 private:
     // State data

@@ -369,6 +369,11 @@ ERROR_CODE_T BTASerialDevice::ReadData(vector<string> &outStrings, const CHAR8 *
     return STATUS_SUCCESS;
 }
 
+ERROR_CODE_T BTASerialDevice::ReadDataSimple(vector<string>& outStrings, const std::string& command)
+{
+   return ReadData(outStrings, command);
+}
+
 /********************************************************************************************************
           ERROR_CODE_T ReadData( vector<string> &outStrings, const string &formatMsg, ... )
     Sends the command in pFormatMsg and returns the response in the outStrings vector.

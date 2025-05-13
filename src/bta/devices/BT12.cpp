@@ -1,4 +1,4 @@
-#include "bta/devices/BT12.h"
+#include "BT12.h"
 
 BT12::BT12()
 {
@@ -34,7 +34,6 @@ ERROR_CODE_T BT12::GetDeviceVersion(shared_ptr<BTAVersionInfo_t>& version)
     shared_ptr<BTAVersionInfo_t> localVersion = make_shared<BTAVersionInfo_t>();
 
     RETURN_EC_IF_NULL(ERROR_FAILED, m_pBTASerialDevice);
-    RETURN_EC_IF_NULL(ERROR_FAILED, version);
 
     /*
         Sierra Wireless Copyright 2018

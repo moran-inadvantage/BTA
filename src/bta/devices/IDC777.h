@@ -3,8 +3,8 @@
 #include <memory>
 
 #include "types.h"
-#include "bta/BTADeviceDriver.h"
-#include "bta/BTASerialDevice.h"
+#include "BTADeviceDriver.h"
+#include "BTASerialDevice.h"
 
 class IDC777 : public BTADeviceDriver
 {

@@ -1,9 +1,9 @@
 #include <memory>
 
-#include "port/linux_x86/uart.h"
-#include "bta/BTADeviceFactory.h"
-#include "bta/BTADeviceDriver.h"
-#include "bta/BTASerialDevice.h"
+#include "uart.h"
+#include "BTADeviceFactory.h"
+#include "BTADeviceDriver.h"
+#include "BTASerialDevice.h"
 
 int main()
 {

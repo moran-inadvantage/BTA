@@ -1,8 +1,8 @@
 #include "types.h"
 
-#include "bta/BTADeviceFactory.h"
-#include "bta/devices/BT12.h"
-#include "bta/devices/IDC777.h"
+#include "BTADeviceFactory.h"
+#include "BT12.h"
+#include "IDC777.h"
 
 shared_ptr<BTADeviceDriver> BTADeviceFactory::CreateBTADeviceDriver(shared_ptr<BTASerialDevice> pBTASerialDevice)
 {
