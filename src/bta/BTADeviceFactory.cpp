@@ -13,34 +13,39 @@ shared_ptr<BTADeviceDriver> BTADeviceFactory::CreateBTADeviceDriver(shared_ptr<B
 
     auto tryCreateDriver = [&](shared_ptr<BTADeviceDriver> driver, int expectedHardware) -> shared_ptr<BTADeviceDriver> {
         RETURN_NULL_IF_NULL(driver);
-        
-        RETURN_NULL_IF_FAILED(driver->SetBtaSerialDevice(pBTASerialDevice));
-        RETURN_NULL_IF_FAILED(driver->EnterCommandMode());
-        RETURN_NULL_IF_FAILED(driver->SendReset());
 
-        if (driver->GetDeviceVersion(versionInfo) != STATUS_SUCCESS) 
+        RETURN_NULL_IF_FAILED(driver->SetAndOpenBtaSerialDevice(pBTASerialDevice));
+
+        // Try various baud rates until we find the correct one. Even if we find the right one, may not be our device
+        do
         {
-            return NULL;
-        }
+            driver->EnterCommandMode();
+            driver->SendReset();
 
-        if (versionInfo->hardware != expectedHardware)
-        {
-            return NULL;
-        }
+            // Expected to fail if baud rate is incorrect
+            if (FAILED(driver->GetDeviceVersion(versionInfo)))
+            {
+                continue;
+            }
 
-        return driver;
+            if (versionInfo->hardware == expectedHardware)
+            {
+                break;
+            }
+        } while (SUCCEEDED(driver->TryNextBaudrate()));
+
+        return (versionInfo->hardware == expectedHardware) ? driver : NULL;
     };
-
-
-    if (auto driver = tryCreateDriver(make_shared<BT12>(), BTA_HW_BT12))
-    {
-        DebugPrintf(DEBUG_TRACE_INFO, DEBUG_TRACE_INFO, "BTADeviceFactory", "Creating a BT12 device\n");
-        return driver;
-    }
 
     if (auto driver = tryCreateDriver(make_shared<IDC777>(), BTA_HW_IDC777))
     {
         DebugPrintf(DEBUG_TRACE_INFO, DEBUG_TRACE_INFO, "BTADeviceFactory", "Creating a IDC777 device\n");
+        return driver;
+    }
+
+    if (auto driver = tryCreateDriver(make_shared<BT12>(), BTA_HW_BT12))
+    {
+        DebugPrintf(DEBUG_TRACE_INFO, DEBUG_TRACE_INFO, "BTADeviceFactory", "Creating a BT12 device\n");
         return driver;
     }
 

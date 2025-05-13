@@ -103,6 +103,14 @@
         } \
     } while (0)
 
+#define RETURN_NULL_IF_TRUE(check) \
+    do { \
+        if (check) { \
+            printf("RETURN_EC_IF_FAILED: %s:%d -> is not true when expected\n", __FILENAME__, __LINE__); \
+            return NULL; \
+        } \
+    } while (0)
+
 #define RETURN_NULL_IF_NULL(check) \
     do { \
         if (check == NULL) { \
@@ -111,6 +119,8 @@
         } \
     } while (0)
 
+
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
 // Debug
 #define DEBUG_NO_LOGGING 0

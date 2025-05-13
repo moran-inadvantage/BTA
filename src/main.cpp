@@ -5,6 +5,8 @@
 #include "BTADeviceDriver.h"
 #include "BTASerialDevice.h"
 
+int simulateCardClass(shared_ptr<BTADeviceDriver> pBtaDeviceDriver);
+
 int main()
 {
     shared_ptr<BTASerialDevice> pBtaSerialDevice = make_shared<BTASerialDevice>();
@@ -20,26 +22,53 @@ int main()
         return -1;
     }
 
-    shared_ptr<BTAVersionInfo_t> versionInfo = make_shared<BTAVersionInfo_t>();
-    if (versionInfo == NULL)
-    {
-        printf("Failed to create versionInfo\n");
-        return -1;
-    }
-    pBtaDeviceDriver->GetDeviceVersion(versionInfo);
 
-    if (versionInfo->hardware == BTA_HW_BT12)
+    return simulateCardClass(pBtaDeviceDriver);
+}
+
+typedef enum
+{
+
+    GET_VERSION,
+    DONE,
+} CardClassStates_t;
+
+void handleStateGetVersion(shared_ptr<BTADeviceDriver> pBtaDeviceDriver)
+{
+    shared_ptr<BTAVersionInfo_t> versionInfo = make_shared<BTAVersionInfo_t>();
+    ERROR_CODE_T status = pBtaDeviceDriver->GetDeviceVersion(versionInfo);
+    if (status == STATUS_SUCCESS)
     {
-        printf("BT12 device detected\n");
-    }
-    else if (versionInfo->hardware == BTA_HW_IDC777)
-    {
-        printf("IDC777 device detected\n");
+        printf("Device Version: %s\n", versionInfo->PrintBuildInfo().c_str());
     }
     else
     {
-        printf("Unknown device detected\n");
+        printf("Failed to get device version\n");
     }
+}
+
+static void incState(CardClassStates_t& state)
+{
+    state = static_cast<CardClassStates_t>(static_cast<int>(state) + 1);
+}
+
+int simulateCardClass(shared_ptr<BTADeviceDriver> pBtaDeviceDriver)
+{
+    CardClassStates_t state = GET_VERSION;
+
+    while (state != DONE)
+    {
+        switch (state) {
+            case GET_VERSION:
+            {
+                handleStateGetVersion(pBtaDeviceDriver);
+                incState(state);
+                break;
+            }
+        }
+    }
+
+    printf("Finished card class!\r\n");
 
     return 0;
 }

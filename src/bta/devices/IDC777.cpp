@@ -1,5 +1,6 @@
 #include "IDC777.h"
 
+
 IDC777::IDC777()
 {
 
@@ -10,7 +11,8 @@ IDC777::~IDC777()
 
 }
 
-ERROR_CODE_T IDC777::SetBtaSerialDevice(shared_ptr<BTASerialDevice> pBTASerialDevice)
+
+ERROR_CODE_T IDC777::SetAndOpenBtaSerialDevice(shared_ptr<BTASerialDevice> pBTASerialDevice)
 {
     RETURN_EC_IF_NULL(ERROR_FAILED, pBTASerialDevice);
 
@@ -24,14 +26,11 @@ ERROR_CODE_T IDC777::SetBtaSerialDevice(shared_ptr<BTASerialDevice> pBTASerialDe
 
 ERROR_CODE_T IDC777::GetDeviceVersion(shared_ptr<BTAVersionInfo_t>& version)
 {
-    if (m_versionInfo.get() != NULL) 
+    if (m_BtFwVersion.IsValid()) 
     {
-        version = m_versionInfo;
+        m_BtFwVersion.CopyInto(version);
         return STATUS_SUCCESS;
     }
-
-    vector<string> retStrings;
-    shared_ptr<BTAVersionInfo_t> localVersion = make_shared<BTAVersionInfo_t>();
 
     RETURN_EC_IF_NULL(ERROR_FAILED, m_pBTASerialDevice);
 
@@ -45,20 +44,78 @@ ERROR_CODE_T IDC777::GetDeviceVersion(shared_ptr<BTAVersionInfo_t>& version)
         "OK"
     */
 
+    vector<string> retStrings;
     RETURN_IF_FAILED(m_pBTASerialDevice->ReadData(retStrings, "VERSION"));
     RETURN_EC_IF_TRUE(ERROR_FAILED, retStrings.size() < 4);
 
-    const string expectedDevice = "IOT747";
-    // Assert ret strings first string contains IOT747
-    if (retStrings[0].find(expectedDevice) == string::npos) 
-    {
-        DebugPrintf(m_PacketVerbosity, DEBUG_NO_LOGGING, m_DebugID, "Expected to find %s in %s\n", expectedDevice.c_str(), retStrings[0].c_str());
-        return ERROR_FAILED;
-    }
+    ParseVersionStrings(retStrings);
 
-    // Now that we've identified that it is the IDC777, we can safely set our version
-    localVersion->hardware = BTA_HW_IDC777;
-    version = localVersion;
+    RETURN_EC_IF_TRUE(ERROR_FAILED,!m_BtFwVersion.IsValid());
+
+    m_BtFwVersion.CopyInto(version);
 
     return STATUS_SUCCESS;
+}
+
+void IDC777::ParseVersionStrings(const vector<string>& retStrings)
+{
+    for (const auto& line : retStrings)
+    {
+        if (line.find("IDC777") != string::npos && line.find("V") != string::npos)
+        {
+            m_BtFwVersion.hardware = BTA_HW_IDC777;
+            m_BtFwVersion.versionString = line;
+
+            // Extract version numbers after 'V'
+            size_t vPos = line.find("V");
+            if (vPos != string::npos) 
+            {
+                string versionPart = line.substr(vPos + 1);
+                size_t dot1 = versionPart.find('.');
+                size_t dot2 = versionPart.find('.', dot1 + 1);
+
+                if (dot1 != string::npos && dot2 != string::npos)
+                {
+                    m_BtFwVersion.major = static_cast<INT8U>(stoi(versionPart.substr(0, dot1)));
+                    m_BtFwVersion.minor = static_cast<INT8U>(stoi(versionPart.substr(dot1 + 1, dot2 - dot1 - 1)));
+                    m_BtFwVersion.patch = static_cast<INT8U>(stoi(versionPart.substr(dot2 + 1)));
+                }
+            }
+        }
+        // make sure it starts with "Build:"
+        else if (line.find("Build:") == 0)
+        { 
+            m_BtFwVersion.buildNumber = (line.length() > 7) ? line.substr(7) : line; 
+        } else if (line.find("Bluetooth address") != string::npos)
+        {
+            m_BluetoothAddress = line.substr(line.find("Bluetooth address") + 18);
+        }
+    }
+}
+
+ERROR_CODE_T IDC777::TryNextBaudrate()
+{
+    RETURN_EC_IF_NULL(ERROR_FAILED, m_pBTASerialDevice);
+
+    BAUDRATE preferredBaudRates[] = { 
+        BAUDRATE_115200,
+    };
+
+    BAUDRATE baudrate;
+    ERROR_CODE_T status = m_pBTASerialDevice->GetBaudrate(baudrate);
+    RETURN_EC_IF_FAILED(status);
+
+    for (int i = 0; i < ARRAY_SIZE(preferredBaudRates); i++)
+    {
+        if (preferredBaudRates[i] == baudrate)
+        {
+            if (i + 1 < ARRAY_SIZE(preferredBaudRates))
+            {
+                RETURN_EC_IF_FAILED(m_pBTASerialDevice->SetBaudrate(preferredBaudRates[i + 1]));
+                return STATUS_SUCCESS;
+            }
+        }
+    }
+
+    return ERROR_FAILED;
 }
