@@ -291,8 +291,8 @@ ERROR_CODE_T BTASerialDevice::WriteData(const CHAR8 *pFormatMsg, ...)
     va_start(args, pFormatMsg);
     result = WriteData(pFormatMsg, args);
     va_end(args);
-    RETURN_IF_FAILED(result);
-    return STATUS_SUCCESS;
+
+    return result;
 }
 
 /********************************************************************************************************
@@ -308,8 +308,8 @@ ERROR_CODE_T BTASerialDevice::WriteData(const string &formatMsg, ...)
     va_start(args, pFormatMsg);
     ERROR_CODE_T result = WriteData(pFormatMsg, args);
     va_end(args);
-    RETURN_IF_FAILED(result);
-    return STATUS_SUCCESS;
+
+    return result;
 }
 
 /********************************************************************************************************
@@ -326,8 +326,7 @@ ERROR_CODE_T BTASerialDevice::WriteDataIgnoreResponse(const CHAR8 *pFormatMsg, .
     ERROR_CODE_T result = WriteData(pFormatMsg, args, true);
     va_end(args);
 
-    RETURN_IF_FAILED(result);
-    return STATUS_SUCCESS;
+    return result;
 }
 
 /********************************************************************************************************
@@ -1012,8 +1011,7 @@ ERROR_CODE_T BTASerialDevice::WriteData(const CHAR8 *pFormatMsg, va_list args, b
         retryCounter--;
     }
 
-    RETURN_IF_FAILED(result);
-    return STATUS_SUCCESS;
+    return result;
 }
 
 /********************************************************************************************************

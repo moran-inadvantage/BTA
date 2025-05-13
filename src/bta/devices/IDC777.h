@@ -14,9 +14,9 @@ public:
 
     ERROR_CODE_T SetAndOpenBtaSerialDevice(shared_ptr<BTASerialDevice> pBTASerialDevice);
     ERROR_CODE_T GetDeviceVersion(shared_ptr<BTAVersionInfo_t>& version);
-    ERROR_CODE_T TryNextBaudrate();
 private:
     const string m_debugId = "IDC777";
 private:
     void ParseVersionStrings(const vector<string>& retStrings);
+    BAUDRATE* GetBaudrateList(INT32U* length);
 };

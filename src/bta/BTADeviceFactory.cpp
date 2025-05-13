@@ -16,7 +16,8 @@ shared_ptr<BTADeviceDriver> BTADeviceFactory::CreateBTADeviceDriver(shared_ptr<B
 
         RETURN_NULL_IF_FAILED(driver->SetAndOpenBtaSerialDevice(pBTASerialDevice));
 
-        // Try various baud rates until we find the correct one. Even if we find the right one, may not be our device
+        // Try various baud rates until we find the correct one.
+        // Even if we find the right one, may not be our device
         do
         {
             driver->EnterCommandMode();

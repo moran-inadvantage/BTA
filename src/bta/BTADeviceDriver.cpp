@@ -17,6 +17,7 @@ BTADeviceDriver::~BTADeviceDriver()
 ERROR_CODE_T BTADeviceDriver::EnterCommandMode()
 {
     RETURN_EC_IF_NULL(ERROR_FAILED, m_pBTASerialDevice);
+
     // Will not get a response if we're already in data mode
     m_pBTASerialDevice->WriteData("$$$$");
 
@@ -26,6 +27,7 @@ ERROR_CODE_T BTADeviceDriver::EnterCommandMode()
 ERROR_CODE_T BTADeviceDriver::SendReset()
 {
     RETURN_EC_IF_NULL(ERROR_FAILED, m_pBTASerialDevice);
+
     // Will not get a valid response, just resets us
     m_pBTASerialDevice->WriteData("RESET");
 
@@ -56,11 +58,37 @@ ERROR_CODE_T BTADeviceDriver::WatchdogPet()
     return STATUS_SUCCESS;
 }
 
+ERROR_CODE_T BTADeviceDriver::TryNextBaudrate()
+{
+    RETURN_EC_IF_NULL(ERROR_FAILED, m_pBTASerialDevice);
+
+    INT32U baudRateListLength;
+    BAUDRATE* preferredBaudRates = GetBaudrateList(&baudRateListLength);
+
+    BAUDRATE baudrate;
+    ERROR_CODE_T status = m_pBTASerialDevice->GetBaudrate(baudrate);
+    RETURN_EC_IF_FAILED(status);
+
+    for (int i = 0; i < baudRateListLength; i++)
+    {
+        if (preferredBaudRates[i] == baudrate)
+        {
+            if (i + 1 < baudRateListLength)
+            {
+                RETURN_EC_IF_FAILED(m_pBTASerialDevice->SetBaudrate(preferredBaudRates[i + 1]));
+                return STATUS_SUCCESS;
+            }
+        }
+    }
+
+    return ERROR_FAILED;
+}
+
 /********************************************************************************************************
                              ERROR_CODE_T GetLocalAddress( void )
 Retrieves the public bluetooth address from the module. This is used as part of the device name.
 ********************************************************************************************************/
-ERROR_CODE_T BTADeviceDriver::GetLocalAddress(void)
+ERROR_CODE_T BTADeviceDriver::GetDeviceCfgLocalAddress(void)
 {
     string retString;
 
@@ -74,7 +102,31 @@ ERROR_CODE_T BTADeviceDriver::GetLocalAddress(void)
         return ERROR_FAILED;
     }
 
-    m_PublicAddress = retString.substr(0, 12);
+    m_LocalAddress = retString.substr(0, 12);
+
+    return STATUS_SUCCESS;
+}
+
+void BTADeviceDriver::SetConfigWritePending(bool pending)
+{
+    if (pending != m_configWritePending)
+    {
+        DebugPrintf(DEBUG_TRACE_INFO, DEBUG_TRACE_INFO, m_DebugID, "Config write pending: %s\n", pending ? "true" : "false");
+        m_configWritePending = pending;
+    }
+}
+
+ERROR_CODE_T BTADeviceDriver::SetDeviceCfgDigitalAudioMode()
+{
+    string retString;
+    RETURN_EC_IF_NULL(ERROR_FAILED, m_pBTASerialDevice);
+    RETURN_IF_FAILED(m_pBTASerialDevice->GetCfgValue(retString, "AUDIO"));
+
+    if (retString.find("1 1") == string::npos)
+    {
+        m_pBTASerialDevice->SetCfgValue("AUDIO", "1 1");
+        SetConfigWritePending(true);
+    }
 
     return STATUS_SUCCESS;
 }

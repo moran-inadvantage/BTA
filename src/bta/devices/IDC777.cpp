@@ -93,29 +93,12 @@ void IDC777::ParseVersionStrings(const vector<string>& retStrings)
     }
 }
 
-ERROR_CODE_T IDC777::TryNextBaudrate()
+BAUDRATE* IDC777::GetBaudrateList(INT32U* length)
 {
-    RETURN_EC_IF_NULL(ERROR_FAILED, m_pBTASerialDevice);
-
-    BAUDRATE preferredBaudRates[] = { 
+    static BAUDRATE preferredBaudRates[] = { 
         BAUDRATE_115200,
     };
 
-    BAUDRATE baudrate;
-    ERROR_CODE_T status = m_pBTASerialDevice->GetBaudrate(baudrate);
-    RETURN_EC_IF_FAILED(status);
-
-    for (int i = 0; i < ARRAY_SIZE(preferredBaudRates); i++)
-    {
-        if (preferredBaudRates[i] == baudrate)
-        {
-            if (i + 1 < ARRAY_SIZE(preferredBaudRates))
-            {
-                RETURN_EC_IF_FAILED(m_pBTASerialDevice->SetBaudrate(preferredBaudRates[i + 1]));
-                return STATUS_SUCCESS;
-            }
-        }
-    }
-
-    return ERROR_FAILED;
+    *length = ARRAY_SIZE(preferredBaudRates);
+    return preferredBaudRates;
 }
