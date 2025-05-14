@@ -1,51 +1,5 @@
 #include "BC127.h"
 
-BC127::BC127()
-{
-    m_PacketVerbosity = 0;
-}
-BC127::~BC127()
-{
-    // Destructor implementation if needed
-}
-
-ERROR_CODE_T BC127::SetAndOpenBtaSerialDevice(shared_ptr<BTASerialDevice> pBTASerialDevice)
-{
-    RETURN_EC_IF_NULL(ERROR_FAILED, pBTASerialDevice);
-
-    ERROR_CODE_T status = pBTASerialDevice->SetBaudrate(BAUDRATE_9600);
-    RETURN_EC_IF_FAILED(status);
-
-    m_pBTASerialDevice = pBTASerialDevice;
-
-    return STATUS_SUCCESS;
-}
-
-ERROR_CODE_T BC127::GetDeviceVersion(shared_ptr<BTAVersionInfo_t>& version)
-{
-    if (m_versionInfo.get() != NULL) 
-    {
-        version = m_versionInfo;
-        return STATUS_SUCCESS;
-    }
-
-    vector<string> retStrings;
-    shared_ptr<BTAVersionInfo_t> localVersion = make_shared<BTAVersionInfo_t>();
-
-    RETURN_EC_IF_NULL(ERROR_FAILED, m_pBTASerialDevice);
-
-    RETURN_IF_FAILED(m_pBTASerialDevice->ReadData(retStrings, "VERSION"));
-    RETURN_EC_IF_TRUE(ERROR_FAILED, retStrings.size() < 5);
-
-    ParseVersionStrings(retStrings);
-
-    RETURN_EC_IF_FALSE(ERROR_FAILED,!m_BtFwVersion.IsValid());
-
-    m_BtFwVersion.CopyInto(version);
-
-    return STATUS_SUCCESS;
-}
-
 void BC127::ParseVersionStrings(const vector<string>& retStrings)
 {
     for (const auto& line : retStrings)
@@ -108,5 +62,215 @@ BAUDRATE* BC127::GetBaudrateList(INT32U* length)
     };
 
     *length = ARRAY_SIZE(preferredBaudRates);
+
     return preferredBaudRates;
+}
+
+string BC127::GetUniqueConfigExpectedString(UniqueConfigSettings_t configOption, bool* notImplemented)
+{
+    // By default, assume it's implemented. It's the exception that it is not.
+    *notImplemented = false;
+
+    switch(configOption)
+    {
+        case UNIQUE_CONFIG_SETTING_DIGITAL_AUDIO_PARAMS: 
+        {
+            if (m_BtFwVersion.BC127FwRev == BC127_FW_REV_6_1_2)
+            {
+                return "0 48000 64 140300";
+            }
+
+            return "0 48000 64 140300 OFF";
+            break;
+        }
+        case UNIQUE_CONFIG_SETTING_AUTO_CONNECTION:
+        {
+            // 0 -  No Auto Connect, 1 - Auto Connect to all devices in paired device list
+            // 2 - Auto-connect to specific device in the REMOTE_ADDR config setting
+            return "0";
+            break;
+        }
+        case UNIQUE_CONFIG_SETTING_BT_VOLUME:
+        {
+            switch (m_BtFwVersion.BC127FwRev)
+            {
+                case BC127_FW_REV_6_1_2:
+                    return "A A 10";
+                case BC127_FW_REV_6_1_5:
+                    return "A A 10 1";
+                default:
+                    // [0] - Default HFP Volume <Hex>
+                    // [1] - Default A2DP Volume <0-100>
+                    // [2] - Default A2DP Volume Steps <1-255>
+                    // [3] - Volume Scaling Method <0 - HW, 1 - DSP>
+                    return "A 70 10 1";
+            }
+            break;
+        }
+        case UNIQUE_CONFIG_SETTTING_CODEC:
+        {
+            // Bit 0 - ACC
+            // Bit 1 - AptX
+            // Bit 2 - AptX Low Latency
+            // Bit 3 - AptX HD <Not Supported on our HW>
+            // OFF - Disabled, ON - Enabled
+            return "7 OFF";
+            break;
+        }
+        case UNIQUE_CONFIG_SETTING_DEVICE_ID:
+        {
+            return "0001 0002 0003 0004 0005 0006 0007 0008";
+            break;
+        }
+        case UNIQUE_CONFIG_SETTING_LED_ENABLE:
+        {
+            // I wonder what this does?
+            return "ON";
+            break;
+        }
+        case UNIQUE_CONFIG_SETTING_GPIO_CONFIG:
+        {
+            if (m_BtFwVersion.BC127FwRev < BC127_FW_REV_7_0)
+            {
+                return "ON 0 254";
+            }
+            
+            return "ON 0 254 0";
+            break;
+        }
+        case UNIQUE_CONFIG_SETTING_SHORT_NAME:
+        {
+            int indexIntoPublicAddress = 0;
+
+            switch (m_BtFwVersion.BC127FwRev)
+            {
+                case BC127_FW_REV_6_1_2:
+                case BC127_FW_REV_6_1_5:
+                    indexIntoPublicAddress = 7;
+                    break;
+                case BC127_FW_REV_7_0:
+                case BC127_FW_REV_7_1:
+                case BC127_FW_REV_7_2:
+                case BC127_FW_REV_7_3:
+                default:
+                    indexIntoPublicAddress = 6;
+                    break;
+            }
+
+            if (m_PublicAddress.length() < indexIntoPublicAddress)
+            {
+                return "IA ";
+            }
+
+            return "IA " + string(&m_PublicAddress[indexIntoPublicAddress]);
+            break;
+        }
+        case UNIQUE_CONFIG_SETTING_VREG_ROLE:
+        {
+            return "0";
+            break;
+        }
+        case UNIQUE_CONFIG_SETTING_PROFILES:
+        {
+            string maxHfpConnections = "0";
+            string maxAghfpConnections = "0";
+            string maxA2dpSinkConnections = m_isInputDevice ? "2" : "0";
+            string maxA2dpSourceConnections = m_isInputDevice ? "0" : "1";
+            string maxAvrcpConnections = "0";
+            string maxBleConnections = "0";
+            string maxSppConnections = "0";
+            string maxPbapConnections = "0";
+            string maxHidDeviceConnections = "0";
+            string maxHidHost = "0";
+            string maxMapConnections = "0";
+            string maxIapConnections = "0";
+
+            return maxHfpConnections + " " +
+                   maxAghfpConnections + " " +
+                   maxA2dpSinkConnections + " " +
+                   maxA2dpSourceConnections + " " +
+                   maxAvrcpConnections + " " +
+                   maxBleConnections + " " +
+                   maxSppConnections + " " +
+                   maxPbapConnections + " " +
+                   maxHidDeviceConnections + " " +
+                   maxHidHost + " " +
+                   maxMapConnections + " " +
+                   maxIapConnections;
+
+            break;
+        }
+        case UNIQUE_CONFIG_SETTING_UI_CONFIG:
+        default:
+            *notImplemented = true;
+            return "";
+            break;
+    }
+}
+
+string BC127::GetUniqueConfigSettingString(UniqueConfigSettings_t configOption, bool* notImplemented)
+{
+    if (notImplemented)
+    {
+        *notImplemented = false;
+    }
+
+    switch (configOption)
+    {
+        case UNIQUE_CONFIG_SETTINGS_BT_STATE:
+        {
+            switch (m_BtFwVersion.BC127FwRev)
+            {
+                case BC127_FW_REV_6_1_2:
+                case BC127_FW_REV_6_1_5:
+                    return "DISCOVERABLE";
+                    break;
+                case BC127_FW_REV_7_0:
+                case BC127_FW_REV_7_1:
+                case BC127_FW_REV_7_2:
+                case BC127_FW_REV_7_3:
+                default:
+                    return "BT_STATE_CONFIG";
+                    break;
+            }
+            break;
+        }
+        default:
+        {
+            *notImplemented = true;
+            return "";
+            break;
+        }
+    }
+}
+
+ERROR_CODE_T BC127::GetDeviceCfgPairedDevice()
+{
+    string remoteAddress;
+    RETURN_IF_FAILED(m_pBTASerialDevice->GetCfgValue(remoteAddress, "REMOTE_ADDR"));
+
+    // There is a bug where the stored value is corrupted. This makes the
+    // REMOTE_ADDR useless for auto connecting to the given device, but it
+    // can be used the store that address. We just need to modify the
+    // returned address to return it correctly.
+    if (m_BtFwVersion.BC127FwRev == BC127_FW_REV_7_2)
+    {
+        if (remoteAddress.size() < 14)
+        {
+            remoteAddress.insert(6, "000000000000", 14 - remoteAddress.size());
+        }
+        remoteAddress.insert(6, remoteAddress, 12, 2);
+        m_PairedDevice = remoteAddress.substr(0, 12);
+    }
+    else
+    {
+        m_PairedDevice = remoteAddress;
+    }
+
+    if (m_PairedDevice == "000000000000")
+    {
+        m_PairedDevice = "";
+    }
+
+    return STATUS_SUCCESS;
 }

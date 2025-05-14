@@ -50,7 +50,11 @@ public:
     virtual ERROR_CODE_T WriteDataIgnoreResponse(const string &formatMsg, ...);
     virtual ERROR_CODE_T ReadData(vector<string> &outStrings, const CHAR8 *pFormatMsg, ...);
     virtual ERROR_CODE_T ReadData(vector<string> &outStrings, const string &formatMsg, ...);
-    virtual ERROR_CODE_T ReadDataSimple(vector<string>& outStrings, const std::string& command);
+    virtual ERROR_CODE_T ReadDataSimple(vector<string>& outStrings, const string& command);
+    // Will read the config option, verify the response, and write the data back to the device if it's not set
+    // Will verify that it was set correctly
+    virtual ERROR_CODE_T ReadVerifyWriteCfgData(const string &cfgOption, string expectedResult, bool* optionWasSet);
+    virtual ERROR_CODE_T SetCfgValue(string cfgOption, string value);
     virtual ERROR_CODE_T SetCfgValue(CHAR8 *pCfgOption, const CHAR8 *pFormatStr, ...);
     virtual ERROR_CODE_T SetCfgValue(CHAR8 *pCfgOption, const string &formatStr, ...);
     virtual ERROR_CODE_T SetCfgValueIgnoreResponse(CHAR8 *pCfgOption, const CHAR8 *pFormatStr, ...);
@@ -67,6 +71,7 @@ public:
     virtual ERROR_CODE_T FlushRxBuffer(INT32U timeoutMS = 50);
     virtual ERROR_CODE_T CancelCurrentCommand(void);
     virtual ERROR_CODE_T SimulateConnectivityLoss(bool connectionLost);
+
     Observable<string> OnUnsolicitedMessageReceived;
 
     private:

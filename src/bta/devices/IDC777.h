@@ -8,15 +8,13 @@
 
 class IDC777 : public BTADeviceDriver
 {
-public:
-    IDC777();
-    ~IDC777();
-
-    ERROR_CODE_T SetAndOpenBtaSerialDevice(shared_ptr<BTASerialDevice> pBTASerialDevice);
-    ERROR_CODE_T GetDeviceVersion(shared_ptr<BTAVersionInfo_t>& version);
-private:
+protected:
     const string m_debugId = "IDC777";
-private:
-    void ParseVersionStrings(const vector<string>& retStrings);
+
     BAUDRATE* GetBaudrateList(INT32U* length);
+    void ParseVersionStrings(const vector<string>& retStrings);
+    string GetUniqueConfigExpectedString(UniqueConfigSettings_t configOption, bool* notImplemented);
+    virtual string GetUniqueConfigSettingString(UniqueConfigSettings_t configOption, bool* notImplemented);
+    string GetExpectedDigitalAudioParamsString();
+    ERROR_CODE_T GetDeviceCfgPairedDevice();
 };

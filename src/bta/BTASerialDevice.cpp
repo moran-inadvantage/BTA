@@ -373,6 +373,27 @@ ERROR_CODE_T BTASerialDevice::ReadDataSimple(vector<string>& outStrings, const s
    return ReadData(outStrings, command);
 }
 
+ERROR_CODE_T BTASerialDevice::ReadVerifyWriteCfgData(const string &cfgOption, string expectedResult, bool* optionWasSet)
+{
+    string retString;
+    *optionWasSet = false;
+    RETURN_IF_FAILED(GetCfgValue(retString, cfgOption));
+
+    if (retString.find(expectedResult) == string::npos)
+    {
+        SetCfgValue(const_cast<CHAR8*>(cfgOption.c_str()), expectedResult.c_str());
+    }
+
+    // Verify we set it correctly
+    RETURN_IF_FAILED(GetCfgValue(retString, cfgOption));
+
+    RETURN_EC_IF_TRUE(ERROR_FAILED, retString.find(expectedResult) == string::npos);
+
+    *optionWasSet = true;
+
+    return STATUS_SUCCESS;
+}
+
 /********************************************************************************************************
           ERROR_CODE_T ReadData( vector<string> &outStrings, const string &formatMsg, ... )
     Sends the command in pFormatMsg and returns the response in the outStrings vector.
@@ -831,6 +852,12 @@ ERROR_CODE_T BTASerialDevice::SimulateConnectivityLoss(bool connectionLost)
 {
     m_DiscardReceivedData = true;
     return STATUS_SUCCESS;
+}
+
+ERROR_CODE_T BTASerialDevice::SetCfgValue(string cfgOption, string value)
+{
+    string setString = "Set " + cfgOption + "=" + value;
+    return WriteData(setString.c_str());
 }
 
 /********************************************************************************************************
