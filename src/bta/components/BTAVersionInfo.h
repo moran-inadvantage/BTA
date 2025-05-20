@@ -1,16 +1,22 @@
 #pragma once
 
+//--------------------------------------------------------------------------------------------------
+// Includes
+//--------------------------------------------------------------------------------------------------
 #include "types.h"
-
 #include <string>
 
-#ifdef __86_64__
-using namespace std;
-#include <memory>
-#else
-
+#ifdef __IAR_SYSTEMS_ICC__
 #endif
 
+#ifdef __x86_64__
+using namespace std;
+#include <memory>
+#endif
+
+//--------------------------------------------------------------------------------------------------
+// Hardware Enumeration
+//--------------------------------------------------------------------------------------------------
 typedef enum
 {
     BTA_HW_BC127,
@@ -18,6 +24,9 @@ typedef enum
     BTA_HW_UNKNOWN,
 } BTAHardware_t;
 
+//--------------------------------------------------------------------------------------------------
+// Firmware Revision Enums
+//--------------------------------------------------------------------------------------------------
 typedef enum
 {
     IDC777_FW_REV_UNKNOWN,
@@ -34,6 +43,9 @@ typedef enum
     BC127_FW_REV_7_3,
 } BC127FirmwareRevision_t;
 
+//--------------------------------------------------------------------------------------------------
+// CBTAVersionInfo_t Class Definition
+//--------------------------------------------------------------------------------------------------
 class CBTAVersionInfo_t
 {
   public:
@@ -41,8 +53,10 @@ class CBTAVersionInfo_t
         : hardware(BTA_HW_UNKNOWN), major(0), minor(0), patch(0)
     {
     }
+
     // If you add anything below, update CopyInto
     BTAHardware_t hardware;
+
     union
     {
         BC127FirmwareRevision_t BC127FwRev;
@@ -52,8 +66,13 @@ class CBTAVersionInfo_t
     INT8U major;
     INT8U minor;
     INT8U patch;
+
     string buildNumber;
     string versionString;
+
+    //--------------------------------------------------------------------------------------------------
+    // Public Accessors
+    //--------------------------------------------------------------------------------------------------
 
     string GetHardwareVersionString()
     {
@@ -70,13 +89,18 @@ class CBTAVersionInfo_t
 
     string PrintBuildInfo()
     {
-        return string("BTDevice: ") + GetHardwareVersionString() + ": " + to_string(major) + "." + to_string(minor) + "." + to_string(patch) + ":" + buildNumber;
+        return string("BTDevice: ") + GetHardwareVersionString() + ": " + to_string(major) + "." +
+               to_string(minor) + "." + to_string(patch) + ":" + buildNumber;
     }
 
     bool IsValid()
     {
         return hardware != BTA_HW_UNKNOWN && !versionString.empty();
     }
+
+    //--------------------------------------------------------------------------------------------------
+    // Utility Methods
+    //--------------------------------------------------------------------------------------------------
 
     void CopyInto(shared_ptr<CBTAVersionInfo_t> &version)
     {

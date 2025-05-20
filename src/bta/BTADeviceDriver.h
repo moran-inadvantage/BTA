@@ -1,3 +1,5 @@
+#pragma once
+
 /********************************************************************************************************
     File Name:  BTADeviceDriver.h
 
@@ -6,11 +8,11 @@
                 that are not common to all devices. This class is used to abstract the common commands and provide
                 a common interface to the device. The derived classes will implement the device specific commands.
                 The derived classes will also implement the device specific commands that are not common to all devices.
-
 ********************************************************************************************************/
 
-#pragma once
-
+//--------------------------------------------------------------------------------------------------
+// Includes
+//--------------------------------------------------------------------------------------------------
 #include "types.h"
 
 #include "BTAPairingManager.h"
@@ -18,22 +20,32 @@
 #include "BTAVersionInfo.h"
 #include "ToneControl.h"
 
+//--------------------------------------------------------------------------------------------------
+// Device Mode Enumeration
+//--------------------------------------------------------------------------------------------------
 typedef enum
 {
     BTA_DEVICE_MODE_INPUT,
     BTA_DEVICE_MODE_OUTPUT,
 } BTADeviceMode_t;
 
+//--------------------------------------------------------------------------------------------------
+// Abstract Interface Class
+//--------------------------------------------------------------------------------------------------
 class IBTADeviceDriver
 {
   public:
     IBTADeviceDriver();
 
+    //----------------------------------------------------------------------------------------------
+    // Device Mode and Serial Communication
+    //----------------------------------------------------------------------------------------------
+
     // Determines if the device will be used as an input or output module
     virtual void SetDeviceMode(BTADeviceMode_t mode);
 
     // Configures the serial device and opens the port with the default baudrate
-    virtual ERROR_CODE_T SetAndOpenBtaSerialDevice(shared_ptr<BTASerialDevice> pBTASerialDevice);
+    virtual ERROR_CODE_T SetAndOpenBtaSerialDevice(shared_ptr<CBTASerialDevice> pBTASerialDevice);
 
     // Attempts to read device version, which contains hardware and firmware version
     virtual ERROR_CODE_T GetDeviceVersion(shared_ptr<CBTAVersionInfo_t> &version);
@@ -48,8 +60,7 @@ class IBTADeviceDriver
     // Device is fully configured
     virtual bool IsDeviceReadyForUse();
 
-    // virtual ERROR_CODE_T ResetAndEstablishSerialConnection(shared_ptr<BTASerialDevice> pBtaSerialDevice = NULL);
-    virtual ERROR_CODE_T ResetAndEstablishSerialConnection(shared_ptr<BTASerialDevice> pBtaSerialDevice);
+    virtual ERROR_CODE_T ResetAndEstablishSerialConnection(shared_ptr<CBTASerialDevice> pBtaSerialDevice);
     virtual ERROR_CODE_T ResetAndEstablishSerialConnection();
 
     // Pets the uart watchdog on the BT adapter
@@ -57,11 +68,16 @@ class IBTADeviceDriver
 
     // Sets Local Address - Read only attribute
     virtual ERROR_CODE_T GetDeviceCfgLocalAddress(void);
+
     // Read only attribute to the device. A unique address for each module
     virtual string GetPublicAddress(void)
     {
         return m_LocalAddress;
     }
+
+    //----------------------------------------------------------------------------------------------
+    // Device Inquiry and Control
+    //----------------------------------------------------------------------------------------------
 
     // An inquiry is a scan for devices around us. This is an async call
     virtual ERROR_CODE_T SendInquiry(INT32U timeout);
@@ -78,12 +94,14 @@ class IBTADeviceDriver
         return m_ToneControl.PlayNextMusicSequence(m_pBTASerialDevice);
     }
 
-    //////////////////////////////////////////////////////////////////////////
+    //----------------------------------------------------------------------------------------------
     // Monitoring - Intended to be called periodically by the controller
+    //----------------------------------------------------------------------------------------------
     virtual ERROR_CODE_T MonitorStatus(void);
 
-    //////////////////////////////////////////////////////////////////////////
-    // Pairing Manager pass through
+    //----------------------------------------------------------------------------------------------
+    // Pairing Manager Pass-Through
+    //----------------------------------------------------------------------------------------------
 
     virtual ERROR_CODE_T GetConnectedDeviceName(string btAddress, string &nameString)
     {
@@ -104,12 +122,14 @@ class IBTADeviceDriver
     {
         return m_PairingManager->PairDevice(btAddress, linkIdOut);
     }
+
     virtual ERROR_CODE_T UnpairAllDevices();
 
     virtual ERROR_CODE_T OpenConnection(string btAddress, string &linkIdOut)
     {
         return m_PairingManager->OpenConnection(btAddress, linkIdOut);
     }
+
     virtual ERROR_CODE_T CloseConnection(string linkId)
     {
         return m_PairingManager->CloseConnection(linkId);
@@ -119,10 +139,12 @@ class IBTADeviceDriver
     {
         return m_PairingManager->IsNewDeviceConnected();
     }
+
     virtual BOOLEAN IsDeviceConnected()
     {
         return m_PairingManager->IsDeviceConnected();
     }
+
     virtual BOOLEAN IsPairedWithDevice()
     {
         return m_PairingManager->IsPairedWithDevice();
@@ -131,11 +153,12 @@ class IBTADeviceDriver
     Observable<BOOLEAN> BTConnectionChangeState;
 
   protected:
-    shared_ptr<BTASerialDevice> m_pBTASerialDevice;
+    //--------------------------------------------------------------------------------------------------
+    // Member Variables
+    //--------------------------------------------------------------------------------------------------
+    shared_ptr<CBTASerialDevice> m_pBTASerialDevice;
     shared_ptr<CBTAPairingManager> m_PairingManager;
-
     CToneControl m_ToneControl;
-
     CBTAVersionInfo_t m_BtFwVersion;
 
     // Used as the BT Long Name, which is what is advertised to the world
@@ -157,6 +180,9 @@ class IBTADeviceDriver
     BTADeviceMode_t m_DeviceMode;
     bool m_deviceReadyForUse;
 
+    //--------------------------------------------------------------------------------------------------
+    // SSP Configuration
+    //--------------------------------------------------------------------------------------------------
     typedef enum
     {
         SSP_DISPLAY_ONLY,
@@ -174,10 +200,12 @@ class IBTADeviceDriver
     // Any writes to the configuration requires a write command for it to persist
     // This flag is used to keep track if we need to write that
     bool m_configWritePending;
-
     bool m_needToUnpairAllDevices;
     void SetFlagUnpairAllDevices(bool unpair);
 
+    //--------------------------------------------------------------------------------------------------
+    // Unique Config Settings Enumeration
+    //--------------------------------------------------------------------------------------------------
     typedef enum
     {
         UNIQUE_CONFIG_SETTING_DIGITAL_AUDIO_PARAMS,
@@ -195,12 +223,16 @@ class IBTADeviceDriver
         UNIQUE_CONFIG_SETTINGS_BT_STATE,
     } UniqueConfigSettings_t;
 
+    //--------------------------------------------------------------------------------------------------
+    // Configuration and Verification
+    //--------------------------------------------------------------------------------------------------
     virtual ERROR_CODE_T VerifyConfigSetting(UniqueConfigSettings_t setting, bool *optionWasSet = NULL);
     virtual ERROR_CODE_T VerifyConfigSetting(string configSetting, UniqueConfigSettings_t setting, bool *optionWasSet = NULL);
     virtual ERROR_CODE_T VerifyConfigSetting(string configSetting, string expectedResult, bool *optionWasSet = NULL);
 
-    // Pure Virtual Methods
-
+    //--------------------------------------------------------------------------------------------------
+    // Pure Virtual (Device-Specific) Methods
+    //--------------------------------------------------------------------------------------------------
     // Each device needs to specify their acceptable baud rates. The first entry is always the default.
     // As we try to talk to each device, we'll go through the list of acceptable baud rates until we give up.
     virtual vector<BAUDRATE> GetBaudrateList() = 0;
@@ -217,6 +249,23 @@ class IBTADeviceDriver
     // Each device has its own version return. After this, we expect the m_BtFwVersion to be valid
     virtual void ParseVersionStrings(const vector<string> &retStrings) = 0;
 
+    virtual ERROR_CODE_T SetDeviceCfgRemoteAddress(string remoteAddress) = 0;
+    virtual ERROR_CODE_T GetDeviceCfgRemoteAddress(string &remoteAddress) = 0;
+
+    virtual ERROR_CODE_T SetBluetoothDiscoverabilityState(bool connectable, bool discoverable) = 0;
+    virtual bool ShouldScanForAllDevices() = 0;
+
+    // Device Configuration Writing
+    virtual void SetConfigWritePending(bool pending);
+    virtual ERROR_CODE_T WriteConfigToFlash();
+    virtual bool IsConfigWritePending()
+    {
+        return m_configWritePending;
+    }
+
+    //--------------------------------------------------------------------------------------------------
+    // Configuration Application
+    //--------------------------------------------------------------------------------------------------
     virtual ERROR_CODE_T SetDeviceCfgDigitalAudioMode();
     virtual ERROR_CODE_T SetDeviceCfgDigitalAudioParams();
     virtual ERROR_CODE_T SetDeviceCfgAutoConnect();
@@ -234,15 +283,6 @@ class IBTADeviceDriver
     virtual ERROR_CODE_T SetDeviceCfgSspCaps();
     virtual ERROR_CODE_T SetDeviceCfgBluetoothState();
 
-    virtual ERROR_CODE_T SetDeviceCfgRemoteAddress(string remoteAddress) = 0;
-
-    virtual ERROR_CODE_T GetDeviceCfgRemoteAddress(string &remoteAddress) = 0;
-
-    virtual ERROR_CODE_T SetBluetoothDiscoverabilityState(bool connectable, bool discoverable) = 0;
-
-    virtual bool ShouldScanForAllDevices() = 0;
-
-    // notify
     virtual ERROR_CODE_T NotifyConnection(void);
 
     // Devices operate in two different modes, command mode and data mode
@@ -251,21 +291,16 @@ class IBTADeviceDriver
 
     // Sends Reset Command over UART
     virtual ERROR_CODE_T SendReset();
+
     virtual void SetDeviceReadyForUse(bool isReady);
+
     // Cycles through viable baudrates until we get a response.
     // Baud rate lists are found from GetBaudrateList
     virtual ERROR_CODE_T TryNextBaudrate();
 
-    // See m_configWritePending
-    virtual void SetConfigWritePending(bool pending);
-    virtual bool IsConfigWritePending()
-    {
-        return m_configWritePending;
-    }
-    virtual ERROR_CODE_T WriteConfigToFlash();
-
-    //////////////////////////////////////////////////////////////////////////
-    // Monitoring
+    //--------------------------------------------------------------------------------------------------
+    // Monitoring Utilities
+    //--------------------------------------------------------------------------------------------------
     CTimeDeltaSec m_MonitorTimer;
     CTimeDeltaSec m_StartupTimer;
     virtual ERROR_CODE_T MonitorInputStatus(vector<string> statusStrings);
@@ -273,10 +308,11 @@ class IBTADeviceDriver
 
     int m_ShouldScanForAllDevices;
 
+    //--------------------------------------------------------------------------------------------------
+    // Miscellaneous Utilities
+    //--------------------------------------------------------------------------------------------------
     virtual void GotoOfflineState(void);
-
     virtual string DeviceModeToString(BTADeviceMode_t mode);
-
     virtual void ChangeBluetoothConfigSetupState(int &state, int desiredState);
     virtual string StateToString(int state);
 };

@@ -1,5 +1,3 @@
-#include <memory>
-
 #include "BTADeviceDriver.h"
 #include "BTASerialDevice.h"
 #include "ExtIO.h"
@@ -25,7 +23,7 @@ bool IBTADeviceDriver::IsDeviceReadyForUse()
     return m_deviceReadyForUse;
 }
 
-ERROR_CODE_T IBTADeviceDriver::SetAndOpenBtaSerialDevice(shared_ptr<BTASerialDevice> pBTASerialDevice)
+ERROR_CODE_T IBTADeviceDriver::SetAndOpenBtaSerialDevice(shared_ptr<CBTASerialDevice> pBTASerialDevice)
 {
     RETURN_EC_IF_NULL(ERROR_FAILED, pBTASerialDevice);
 
@@ -83,7 +81,7 @@ ERROR_CODE_T IBTADeviceDriver::GetDeviceVersion(shared_ptr<CBTAVersionInfo_t> &v
     return STATUS_SUCCESS;
 }
 
-ERROR_CODE_T IBTADeviceDriver::ResetAndEstablishSerialConnection(shared_ptr<BTASerialDevice> pBtaSerialDevice)
+ERROR_CODE_T IBTADeviceDriver::ResetAndEstablishSerialConnection(shared_ptr<CBTASerialDevice> pBtaSerialDevice)
 {
     if (pBtaSerialDevice != NULL)
     {

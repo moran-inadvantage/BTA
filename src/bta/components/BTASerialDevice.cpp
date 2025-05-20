@@ -8,7 +8,7 @@
 /********************************************************************************************************
                                     Constructor
 ********************************************************************************************************/
-BTASerialDevice::BTASerialDevice()
+CBTASerialDevice::CBTASerialDevice()
     : m_IsCommEnabled(false), m_CancelCurrentCommand(false), m_DiscardReceivedData(false),
       m_PacketVerbosity(DEBUG_NO_LOGGING), m_rxBytesProcessed(0),
       m_rxBytesReceived(0), m_CardNumber(0), m_curBaudrate(BAUDRATE_9600)
@@ -19,7 +19,7 @@ BTASerialDevice::BTASerialDevice()
 /********************************************************************************************************
                                     Destructor
 ********************************************************************************************************/
-BTASerialDevice::~BTASerialDevice()
+CBTASerialDevice::~CBTASerialDevice()
 {
     shared_ptr<IUart> pUart = m_pUart.lock();
     if (pUart.get() != NULL)
@@ -28,7 +28,7 @@ BTASerialDevice::~BTASerialDevice()
     }
 }
 
-const BTASerialDevice::BT_AUDIO_ERROR_CODE BTASerialDevice::s_ErrorCodeList[] =
+const CBTASerialDevice::BT_AUDIO_ERROR_CODE CBTASerialDevice::s_ErrorCodeList[] =
     {
         {0x0003, ERROR_FAILED, "Unknown Error"},
         {0x0011, ERROR_INVALID_CONFIGURATION, "Command not allowed with the current configuration"},
@@ -52,7 +52,7 @@ const BTASerialDevice::BT_AUDIO_ERROR_CODE BTASerialDevice::s_ErrorCodeList[] =
         {0xF000, ERROR_FAILED, "Critical Error"},
 };
 
-const CHAR8 *BTASerialDevice::s_UnsolictedCommands[] =
+const CHAR8 *CBTASerialDevice::s_UnsolictedCommands[] =
     {
         "A2DP_STREAM_START",
         "A2DP_STREAM_SUSPEND",
@@ -114,7 +114,7 @@ const CHAR8 *BTASerialDevice::s_UnsolictedCommands[] =
     Sets the IUart that will be used for communication.
     If there was a previous connection it will be closed.
 ********************************************************************************************************/
-ERROR_CODE_T BTASerialDevice::SetUArt(weak_ptr<IUart> pUart)
+ERROR_CODE_T CBTASerialDevice::SetUArt(weak_ptr<IUart> pUart)
 {
     CSimpleLock myLock(&m_CS);
     shared_ptr<IUart> pOldUart = m_pUart.lock();
@@ -133,7 +133,7 @@ ERROR_CODE_T BTASerialDevice::SetUArt(weak_ptr<IUart> pUart)
 
 /********************************************************************************************************
 ********************************************************************************************************/
-ERROR_CODE_T BTASerialDevice::GetBaudrate(BAUDRATE &baudrate)
+ERROR_CODE_T CBTASerialDevice::GetBaudrate(BAUDRATE &baudrate)
 {
     baudrate = m_curBaudrate;
     return STATUS_SUCCESS;
@@ -141,7 +141,7 @@ ERROR_CODE_T BTASerialDevice::GetBaudrate(BAUDRATE &baudrate)
 
 /********************************************************************************************************
 ********************************************************************************************************/
-ERROR_CODE_T BTASerialDevice::SetBaudrate(BAUDRATE baudrate)
+ERROR_CODE_T CBTASerialDevice::SetBaudrate(BAUDRATE baudrate)
 {
     shared_ptr<IUart> pUart = m_pUart.lock();
     RETURN_EC_IF_NULL(ERROR_NOT_INITIALIZED, pUart);
@@ -163,7 +163,7 @@ ERROR_CODE_T BTASerialDevice::SetBaudrate(BAUDRATE baudrate)
     activity on the serial port is detected, disabling the communciation will allow the card to control
     the reset.
 ********************************************************************************************************/
-ERROR_CODE_T BTASerialDevice::SetCommEnable(bool enabled)
+ERROR_CODE_T CBTASerialDevice::SetCommEnable(bool enabled)
 {
     CSimpleLock myLock(&m_CS);
     m_CommEnableTimer.ResetTime(COMM_ENABLE_DELAY);
@@ -176,7 +176,7 @@ ERROR_CODE_T BTASerialDevice::SetCommEnable(bool enabled)
                                 bool IsCommEnabled( void )
     Returns the state of the Comm Enabled flag.
 ********************************************************************************************************/
-BOOLEAN BTASerialDevice::IsCommEnabled(void)
+BOOLEAN CBTASerialDevice::IsCommEnabled(void)
 {
     CSimpleLock myLock(&m_CS);
 
@@ -193,7 +193,7 @@ BOOLEAN BTASerialDevice::IsCommEnabled(void)
                         ERROR_CODE_T SetPacketVerbosity( INT8U verbosity )
     Sets the packet verbosity, should be DEBUG_TRACE_MESSAGE or DEBUG_NO_LOGGING.
 ********************************************************************************************************/
-ERROR_CODE_T BTASerialDevice::SetPacketVerbosity(INT8U verbosity)
+ERROR_CODE_T CBTASerialDevice::SetPacketVerbosity(INT8U verbosity)
 {
     RETURN_EC_IF_FALSE(ERROR_INVALID_PARAMETER, verbosity == DEBUG_TRACE_MESSAGE || verbosity == DEBUG_NO_LOGGING);
     m_PacketVerbosity = verbosity;
@@ -204,7 +204,7 @@ ERROR_CODE_T BTASerialDevice::SetPacketVerbosity(INT8U verbosity)
                             INT8U GetPacketVerbosity( void )
     Returns the current packet verbosity.
 ********************************************************************************************************/
-INT8U BTASerialDevice::GetPacketVerbosity(void)
+INT8U CBTASerialDevice::GetPacketVerbosity(void)
 {
     return m_PacketVerbosity;
 }
@@ -213,7 +213,7 @@ INT8U BTASerialDevice::GetPacketVerbosity(void)
                    ERROR_CODE_T SetDebugID(CHAR8 (&debugID)[OS_TASK_NAME_SIZE])
     Sets the ID used for debug messages.
 ********************************************************************************************************/
-ERROR_CODE_T BTASerialDevice::SetDebugID(CHAR8 (&debugID)[OS_TASK_NAME_SIZE])
+ERROR_CODE_T CBTASerialDevice::SetDebugID(CHAR8 (&debugID)[OS_TASK_NAME_SIZE])
 {
     CSimpleLock myLock(&m_CS);
     memset(m_DebugID, 0, OS_TASK_NAME_SIZE);
@@ -223,7 +223,7 @@ ERROR_CODE_T BTASerialDevice::SetDebugID(CHAR8 (&debugID)[OS_TASK_NAME_SIZE])
 
 /********************************************************************************************************
 ********************************************************************************************************/
-ERROR_CODE_T BTASerialDevice::SetCardNumber(INT8U cardNumber)
+ERROR_CODE_T CBTASerialDevice::SetCardNumber(INT8U cardNumber)
 {
     m_CardNumber = cardNumber;
     return STATUS_SUCCESS;
@@ -233,7 +233,7 @@ ERROR_CODE_T BTASerialDevice::SetCardNumber(INT8U cardNumber)
                      ERROR_CODE_T PetBTAdapterWatchdog(bool flushRxBuffer = false)
     Sends a dummy byte to the adapter to keep it alive.
 ********************************************************************************************************/
-ERROR_CODE_T BTASerialDevice::PetBTAdapterWatchdog(bool flushRxBuffer)
+ERROR_CODE_T CBTASerialDevice::PetBTAdapterWatchdog(bool flushRxBuffer)
 {
     CSimpleLock myLock(&m_CS);
     shared_ptr<IUart> pUart = m_pUart.lock();
@@ -258,7 +258,7 @@ ERROR_CODE_T BTASerialDevice::PetBTAdapterWatchdog(bool flushRxBuffer)
           ERROR_CODE_T ReadData( vector<string> &outStrings, const CHAR8 *pFormatMsg, ... )
     Sends the command in pFormatMsg and returns the response in the outStrings vector.
 ********************************************************************************************************/
-ERROR_CODE_T BTASerialDevice::ReadData(vector<string> &outStrings, string message)
+ERROR_CODE_T CBTASerialDevice::ReadData(vector<string> &outStrings, string message)
 {
     CSimpleLock myLock(&m_CS);
 
@@ -271,7 +271,7 @@ ERROR_CODE_T BTASerialDevice::ReadData(vector<string> &outStrings, string messag
     return STATUS_SUCCESS;
 }
 
-ERROR_CODE_T BTASerialDevice::ReadVerifyWriteCfgData(const string cfgOption, string expectedResult, bool *optionWasSet)
+ERROR_CODE_T CBTASerialDevice::ReadVerifyWriteCfgData(const string cfgOption, string expectedResult, bool *optionWasSet)
 {
     string retString;
     *optionWasSet = false;
@@ -297,7 +297,7 @@ ERROR_CODE_T BTASerialDevice::ReadVerifyWriteCfgData(const string cfgOption, str
     This flushes the serial receive buffer by reading data out and returning when no more data is read.
     This should get the packet framing lined up.
 ********************************************************************************************************/
-ERROR_CODE_T BTASerialDevice::FlushRxBuffer(INT32U timeoutMS)
+ERROR_CODE_T CBTASerialDevice::FlushRxBuffer(INT32U timeoutMS)
 {
     m_CancelCurrentCommand = false;
     INT32U maxRetryCounter = 10;
@@ -324,7 +324,7 @@ ERROR_CODE_T BTASerialDevice::FlushRxBuffer(INT32U timeoutMS)
 
 /********************************************************************************************************
 ********************************************************************************************************/
-ERROR_CODE_T BTASerialDevice::CancelCurrentCommand(void)
+ERROR_CODE_T CBTASerialDevice::CancelCurrentCommand(void)
 {
     m_CancelCurrentCommand = true;
     return STATUS_SUCCESS;
@@ -332,13 +332,13 @@ ERROR_CODE_T BTASerialDevice::CancelCurrentCommand(void)
 
 /********************************************************************************************************
 ********************************************************************************************************/
-ERROR_CODE_T BTASerialDevice::SimulateConnectivityLoss(bool connectionLost)
+ERROR_CODE_T CBTASerialDevice::SimulateConnectivityLoss(bool connectionLost)
 {
     m_DiscardReceivedData = true;
     return STATUS_SUCCESS;
 }
 
-ERROR_CODE_T BTASerialDevice::SetCfgValue(string cfgOption, string value, bool ignoreResponse)
+ERROR_CODE_T CBTASerialDevice::SetCfgValue(string cfgOption, string value, bool ignoreResponse)
 {
     string setString = "Set " + cfgOption + "=" + value;
     return WriteData(setString, ignoreResponse);
@@ -349,7 +349,7 @@ ERROR_CODE_T BTASerialDevice::SetCfgValue(string cfgOption, string value, bool i
     Gets a configuration value from the BT device. The returned string will be set to the outString
     reference. This will be stripped of the "pCfgoption=" portion of the response.
 ********************************************************************************************************/
-ERROR_CODE_T BTASerialDevice::GetCfgValue(string &outString, const string cfgOption)
+ERROR_CODE_T CBTASerialDevice::GetCfgValue(string &outString, const string cfgOption)
 {
     CSimpleLock myLock(&m_CS);
     vector<string> outStrings;
@@ -366,7 +366,7 @@ ERROR_CODE_T BTASerialDevice::GetCfgValue(string &outString, const string cfgOpt
     A private function that write the data to the uArt.
 ********************************************************************************************************/
 
-ERROR_CODE_T BTASerialDevice::WriteData(string data, bool ignoreResponse)
+ERROR_CODE_T CBTASerialDevice::WriteData(string data, bool ignoreResponse)
 {
     CSimpleLock myLock(&m_CS);
     m_CancelCurrentCommand = false;
@@ -421,7 +421,7 @@ ERROR_CODE_T BTASerialDevice::WriteData(string data, bool ignoreResponse)
 
 /********************************************************************************************************
 ********************************************************************************************************/
-BOOLEAN BTASerialDevice::CommandIsInList(const string &command, const list<string> &commandList)
+BOOLEAN CBTASerialDevice::CommandIsInList(const string &command, const list<string> &commandList)
 {
     list<string>::const_iterator it;
     for (it = commandList.begin(); it != commandList.end(); it++)
@@ -445,7 +445,7 @@ ERROR_CODE_T CBTEAComm::ReceiveData(list<string> &responses, INT32U timeoutMS = 
     m_RxBuffer[0]. the response ends when one of the following are found: "OK\r", "PENDING...\r", or
     "ERROR ...\r".
 ********************************************************************************************************/
-ERROR_CODE_T BTASerialDevice::ReceiveData(list<string> &responses, INT32U timeoutMS, const list<string> &expectedResponses)
+ERROR_CODE_T CBTASerialDevice::ReceiveData(list<string> &responses, INT32U timeoutMS, const list<string> &expectedResponses)
 {
     responses.clear();
     shared_ptr<IUart> pUart = m_pUart.lock();
@@ -575,7 +575,7 @@ ERROR_CODE_T BTASerialDevice::ReceiveData(list<string> &responses, INT32U timeou
 
 /********************************************************************************************************
 ********************************************************************************************************/
-ERROR_CODE_T BTASerialDevice::ProcessUnsolicitedMessage(string command)
+ERROR_CODE_T CBTASerialDevice::ProcessUnsolicitedMessage(string command)
 {
     OnUnsolicitedMessageReceived.notifyObservers(command);
     return STATUS_SUCCESS;
@@ -583,7 +583,7 @@ ERROR_CODE_T BTASerialDevice::ProcessUnsolicitedMessage(string command)
 
 /********************************************************************************************************
 ********************************************************************************************************/
-string BTASerialDevice::Utf8Decode(string utf8EncodedString)
+string CBTASerialDevice::Utf8Decode(string utf8EncodedString)
 {
     string outputString = "";
     string utf8Char = "";
@@ -625,7 +625,7 @@ string BTASerialDevice::Utf8Decode(string utf8EncodedString)
 
 /********************************************************************************************************
 ********************************************************************************************************/
-CHAR8 BTASerialDevice::Utf8DecodeChar(string utf8EncodedChar)
+CHAR8 CBTASerialDevice::Utf8DecodeChar(string utf8EncodedChar)
 {
     INT16U charEncode = 0;
 

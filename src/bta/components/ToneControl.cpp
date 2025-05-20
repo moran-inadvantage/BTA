@@ -19,10 +19,15 @@ const CToneControl::TONE_SEGMENT_T CToneControl::s_TorgoThemeSong[] =
         //                 |  F6    |   E6   |   B5   |    C6
         {"TONE TE 180 TI 6 N F6 L 4 N E6 L 4 N B5 L 4 N C6 L 4", OS_TICKS_PER_SEC}};
 
+
+// It seems like the commands should work with both platforms - more testing needed
+
+// IDC777 Datasheet
 const CToneControl::TONE_SEGMENT_T CToneControl::s_SampleToneFromDatasheet[] =
     {
         {"TONE TE 400 V 64 TI 0 N C5 L 8 N R0 L 32 N E5 L 8 N R0 L 32 N G5 L 8 N R0 L 32 N B5 L 4 N R0 L 1 N C6 L 2 TN C6 L 8", OS_TICKS_PER_SEC}};
 
+// IDC777
 const CToneControl::TONE_SEGMENT_T CToneControl::s_BatmanTheme[] =
     {
         //                dun    nu     nu     nu     nu     nu      BAT     MAN!
@@ -47,7 +52,7 @@ CToneControl::CToneControl(void)
 /********************************************************************************************************
                         ERROR_CODE_T PlayNextMusicSequence( BTEAComm &btcomm )
 ********************************************************************************************************/
-ERROR_CODE_T CToneControl::PlayNextMusicSequence(weak_ptr<BTASerialDevice> serialDevice)
+ERROR_CODE_T CToneControl::PlayNextMusicSequence(weak_ptr<CBTASerialDevice> serialDevice)
 {
     if (m_TestToneTimer.IsTimeExpired())
     {
@@ -61,7 +66,7 @@ ERROR_CODE_T CToneControl::PlayNextMusicSequence(weak_ptr<BTASerialDevice> seria
 /********************************************************************************************************
                         ERROR_CODE_T SendNextSequenceCommand( CBTEAComm &btcomm )
 ********************************************************************************************************/
-ERROR_CODE_T CToneControl::SendNextSequenceCommand(weak_ptr<BTASerialDevice> serialDevice)
+ERROR_CODE_T CToneControl::SendNextSequenceCommand(weak_ptr<CBTASerialDevice> serialDevice)
 {
 
     RETURN_IF_FAILED(serialDevice.lock()->WriteData(s_SongList[m_CurSongIdx].pSegments[m_CurToneIdx].Command));

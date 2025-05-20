@@ -9,7 +9,7 @@ shared_ptr<IBTADeviceDriver> BTADeviceFactory::CreateBTADeviceDriver(shared_ptr<
     if (uart == NULL)
         return shared_ptr<IBTADeviceDriver>();
 
-    shared_ptr<BTASerialDevice> pBtaSerialDevice = make_shared<BTASerialDevice>();
+    shared_ptr<CBTASerialDevice> pBtaSerialDevice = make_shared<CBTASerialDevice>();
     if (pBtaSerialDevice->SetUArt(uart) != 0)
         return shared_ptr<IBTADeviceDriver>();
     if (pBtaSerialDevice->SetCommEnable(true) != 0)
@@ -41,7 +41,7 @@ shared_ptr<IBTADeviceDriver> BTADeviceFactory::CreateBTADeviceDriver(shared_ptr<
 shared_ptr<IBTADeviceDriver> BTADeviceFactory::TryCreateDriver(
     shared_ptr<IBTADeviceDriver> driver,
     int expectedHardware,
-    shared_ptr<BTASerialDevice> serialDevice,
+    shared_ptr<CBTASerialDevice> serialDevice,
     shared_ptr<CBTAVersionInfo_t> versionInfo)
 {
     if (driver == NULL)
