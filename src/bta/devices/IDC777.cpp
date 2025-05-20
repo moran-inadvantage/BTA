@@ -144,7 +144,7 @@ string IDC777::GetUniqueConfigExpectedString(UniqueConfigSettings_t configOption
         }
         case UNIQUE_CONFIG_SETTING_PROFILES:
         {
-            string multipleConnections = "OFF";
+            string multipleConnections = (m_DeviceMode == BTA_DEVICE_MODE_INPUT) ? "ON" : "OFF";
             string maxHfpConnections = "0";
             string maxAghfpConnections = "0";
             string maxA2dpSinkConnections = (m_DeviceMode == BTA_DEVICE_MODE_INPUT) ? "2" : "0";

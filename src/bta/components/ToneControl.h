@@ -10,7 +10,6 @@ class for defining tone signals.
 #include "TimeDelta.h"
 #include "types.h"
 
-
 class CToneControl
 {
   public:

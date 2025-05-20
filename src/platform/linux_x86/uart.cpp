@@ -1,23 +1,23 @@
-#include <fcntl.h>
-#include <termios.h>
-#include <unistd.h>
 #include <cstring>
-#include <iostream>
 #include <errno.h>
-#include <sys/ioctl.h>
+#include <fcntl.h>
+#include <iostream>
 #include <sstream>
 #include <string>
+#include <sys/ioctl.h>
+#include <termios.h>
+#include <unistd.h>
 
 #include "uart.h"
 
-CuArt::CuArt(INT32U PortNumber) :
-    IUart(PortNumber),
-    m_TxPutIndex(0),
-    m_TxGetIndex(0),
-    m_RxPutIndex(0),
-    m_RxGetIndex(0),
-    m_TransmitterActive(0),
-    m_Fd(-1)  // File descriptor for the UART port
+CuArt::CuArt(INT32U PortNumber)
+    : IUart(PortNumber),
+      m_TxPutIndex(0),
+      m_TxGetIndex(0),
+      m_RxPutIndex(0),
+      m_RxGetIndex(0),
+      m_TransmitterActive(0),
+      m_Fd(-1) // File descriptor for the UART port
 {
 }
 
@@ -32,7 +32,8 @@ ERROR_CODE_T CuArt::Open(BAUDRATE Baud, BYTE_SIZE ByteSize, PARITY Parity, STOP_
     devPath << "/dev/ttyUSB" << m_Port;
 
     m_Fd = open(devPath.str().c_str(), O_RDWR | O_NOCTTY | O_NDELAY);
-    if (m_Fd < 0) {
+    if (m_Fd < 0)
+    {
         printf("Failed to open UART port %s: %s\n", devPath.str().c_str(), strerror(errno));
         return ERROR_FAILED;
     }
@@ -44,29 +45,48 @@ ERROR_CODE_T CuArt::Open(BAUDRATE Baud, BYTE_SIZE ByteSize, PARITY Parity, STOP_
 
     // Set baud rate
     speed_t baud;
-    switch (Baud) {
-        case BAUDRATE_9600: baud = B9600; break;
-        case BAUDRATE_19200: baud = B19200; break;
-        case BAUDRATE_115200: baud = B115200; break;
-        default: baud = B9600; break;
+    switch (Baud)
+    {
+        case BAUDRATE_9600:
+            baud = B9600;
+            break;
+        case BAUDRATE_19200:
+            baud = B19200;
+            break;
+        case BAUDRATE_115200:
+            baud = B115200;
+            break;
+        default:
+            baud = B9600;
+            break;
     }
     cfsetispeed(&options, baud);
     cfsetospeed(&options, baud);
 
     // Configure byte size
     options.c_cflag &= ~CSIZE;
-    switch (ByteSize) {
-        case BYTE_SZ_5: options.c_cflag |= CS5; break;
-        case BYTE_SZ_6: options.c_cflag |= CS6; break;
-        case BYTE_SZ_7: options.c_cflag |= CS7; break;
+    switch (ByteSize)
+    {
+        case BYTE_SZ_5:
+            options.c_cflag |= CS5;
+            break;
+        case BYTE_SZ_6:
+            options.c_cflag |= CS6;
+            break;
+        case BYTE_SZ_7:
+            options.c_cflag |= CS7;
+            break;
         case BYTE_SZ_8:
-        default: options.c_cflag |= CS8; break;
+        default:
+            options.c_cflag |= CS8;
+            break;
     }
 
     // Configure parity
     if (Parity == NO_PARITY)
         options.c_cflag &= ~PARENB;
-    else {
+    else
+    {
         options.c_cflag |= PARENB;
         if (Parity == PARITY_ODD)
             options.c_cflag |= PARODD;
@@ -97,7 +117,8 @@ ERROR_CODE_T CuArt::Open(BAUDRATE Baud, BYTE_SIZE ByteSize, PARITY Parity, STOP_
 
 ERROR_CODE_T CuArt::Close()
 {
-    if (m_Fd >= 0) {
+    if (m_Fd >= 0)
+    {
         close(m_Fd);
         m_Fd = -1;
     }
@@ -115,7 +136,7 @@ INT32U CuArt::RxBytesAvailable()
 void CuArt::WriteString(const CHAR8 *pString)
 {
     INT32U written;
-    WritePort(reinterpret_cast<const INT8U*>(pString), strlen(pString), &written);
+    WritePort(reinterpret_cast<const INT8U *>(pString), strlen(pString), &written);
 }
 
 void CuArt::WriteByte(INT8U Byte)
@@ -126,7 +147,7 @@ void CuArt::WriteByte(INT8U Byte)
 
 void CuArt::WriteWord(INT16U Word)
 {
-    INT8U buf[2] = { static_cast<INT8U>(Word & 0xFF), static_cast<INT8U>((Word >> 8) & 0xFF) };
+    INT8U buf[2] = {static_cast<INT8U>(Word & 0xFF), static_cast<INT8U>((Word >> 8) & 0xFF)};
     INT32U written;
     WritePort(buf, 2, &written);
 }
@@ -137,8 +158,7 @@ void CuArt::WriteDWord(INT32U DWord)
         static_cast<INT8U>(DWord & 0xFF),
         static_cast<INT8U>((DWord >> 8) & 0xFF),
         static_cast<INT8U>((DWord >> 16) & 0xFF),
-        static_cast<INT8U>((DWord >> 24) & 0xFF)
-    };
+        static_cast<INT8U>((DWord >> 24) & 0xFF)};
     INT32U written;
     WritePort(buf, 4, &written);
 }
@@ -155,7 +175,8 @@ BOOLEAN CuArt::ReadWord(INT16U *pWord)
     INT8U buf[2];
     INT32U read;
     ReadPort(buf, 2, &read);
-    if (read == 2) {
+    if (read == 2)
+    {
         *pWord = buf[0] | (buf[1] << 8);
         return true;
     }
@@ -167,7 +188,8 @@ BOOLEAN CuArt::ReadDWord(INT32U *pDWord)
     INT8U buf[4];
     INT32U read;
     ReadPort(buf, 4, &read);
-    if (read == 4) {
+    if (read == 4)
+    {
         *pDWord = buf[0] | (buf[1] << 8) | (buf[2] << 16) | (buf[3] << 24);
         return true;
     }

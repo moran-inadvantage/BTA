@@ -18,13 +18,11 @@ using namespace std;
 #include <string>
 #include <vector>
 
-
 #include "BTASerialDevice.h"
 #include "CriticalSection.h"
 #include "Observable.h"
 #include "TimeDelta.h"
 #include "types.h"
-
 
 class CBTEAPairedDevice
 {

@@ -1,17 +1,17 @@
 #include "BTAPairingManager.h"
 
+#include "CPPInterfaces.h"
+
 #include "BTADeviceDriver.h"
-#include "BTAStatusTable.h"
 #include "ExtIO.h"
 #include "IO.h"
 #include "ScopeExit.h"
 
-const CHAR8 *CBTAPairingManager::s_InquireCODList[] =
-    {
-        "240404", // Audio Rendering, Wearable Headset Device
-        //"240414", // Audio Rendering, Loudspeaker
-        "240418", // Audio Rendering, Headphones
-        "2C0404", // Audio Rendering/Capturing, Wearable Headset Device
+const CHAR8 *CBTAPairingManager::s_InquireCODList[] = {
+    "240404", // Audio Rendering, Wearable Headset Device
+    //"240414", // Audio Rendering, Loudspeaker
+    "240418", // Audio Rendering, Headphones
+    "2C0404", // Audio Rendering/Capturing, Wearable Headset Device
 };
 
 BOOLEAN CBTAPairingManager::IsNewDeviceConnected(void)
@@ -34,12 +34,14 @@ void CBTAPairingManager::ResetStateMachine(void)
 ERROR_CODE_T CBTAPairingManager::OnOpenNotificationReceived(BOOLEAN state)
 {
     CSimpleLock myLock(&m_CS);
-    DebugPrintf(DEBUG_TRACE, DEBUG_TRACE, m_LogId.c_str(), "Open notification received: %s\n", state ? "true" : "false");
+    DebugPrintf(DEBUG_TRACE, DEBUG_TRACE, m_LogId.c_str(),
+                "Open notification received: %s\n", state ? "true" : "false");
     m_receivedOpenNotification = state;
     return STATUS_SUCCESS;
 }
 
-ERROR_CODE_T CBTAPairingManager::GetConnectedDeviceName(string btAddress, string &nameString)
+ERROR_CODE_T CBTAPairingManager::GetConnectedDeviceName(string btAddress,
+                                                        string &nameString)
 {
     CSimpleLock myLock(&m_CS);
     nameString = "";
@@ -58,7 +60,8 @@ ERROR_CODE_T CBTAPairingManager::GetConnectedDeviceName(string btAddress, string
         while (!messageTimer.IsTimeExpired() && nameString.empty())
         {
             PetWatchdog();
-            RETURN_EC_IF_TRUE(ERROR_FAILED, m_pBTASerialDevice->GetCancelCurrentCommand());
+            RETURN_EC_IF_TRUE(ERROR_FAILED,
+                              m_pBTASerialDevice->GetCancelCurrentCommand());
 
             list<string> responseStrings;
             if (SUCCEEDED(m_pBTASerialDevice->ReceiveData(responseStrings, 100)))
@@ -73,11 +76,13 @@ ERROR_CODE_T CBTAPairingManager::GetConnectedDeviceName(string btAddress, string
                     {
                         if (nameResults[1] == btAddress)
                         {
-                            // The BT device name can have  a space in it, which throws the parsing off.
+                            // The BT device name can have  a space in it, which throws the
+                            // parsing off.
                             vector<string> deviceNameStrings;
                             RETURN_IF_FAILED(SplitString(deviceNameStrings, *it, '\"', true));
                             nameString = m_pBTASerialDevice->Utf8Decode(deviceNameStrings[1]);
-                            m_deviceNameMap.insert(pair<string, string>(btAddress, nameString));
+                            m_deviceNameMap.insert(
+                                pair<string, string>(btAddress, nameString));
                             break;
                         }
                     }
@@ -95,7 +100,8 @@ ERROR_CODE_T CBTAPairingManager::GetConnectedDeviceName(string btAddress, string
     return STATUS_SUCCESS;
 }
 
-shared_ptr<CBTEAPairedDevice> CBTAPairingManager::FindPairedDevice(string btAddress)
+shared_ptr<CBTEAPairedDevice>
+CBTAPairingManager::FindPairedDevice(string btAddress)
 {
     list<shared_ptr<CBTEAPairedDevice> >::iterator it;
 
@@ -114,7 +120,8 @@ ERROR_CODE_T CBTAPairingManager::RequestConnectionToDefaultDevice(void)
 {
     // If the device did not automatically try to connect, we will force the issue
     // by opening the connection ourselves
-    shared_ptr<CBTEAPairedDevice> pDevice = FindPairedDevice(m_PairedBtDeviceAddress);
+    shared_ptr<CBTEAPairedDevice> pDevice =
+        FindPairedDevice(m_PairedBtDeviceAddress);
     if (pDevice != NULL)
     {
         string outLinkId = "";
@@ -129,13 +136,16 @@ static string timeoutToString(INT8U timeoutSec)
     return "" + (INT32U)(timeoutSec / 1.28f);
 }
 
-ERROR_CODE_T CBTAPairingManager::ScanForBtDevices(list<shared_ptr<CBTEADetectedDevice> > &detectedDeviceList, bool scanAllDevices, INT8U timeoutSec)
+ERROR_CODE_T CBTAPairingManager::ScanForBtDevices(
+    list<shared_ptr<CBTEADetectedDevice> > &detectedDeviceList,
+    bool scanAllDevices, INT8U timeoutSec)
 {
     CSimpleLock myLock(&m_CS);
     CBTAPairingManager *pThis = this;
 
     ScopeExit(
-        scanCleanupSe, {
+        scanCleanupSe,
+        {
             pThis->m_scanState = SS_INIT;
             pThis->m_scanAbort = false;
         },
@@ -147,9 +157,11 @@ ERROR_CODE_T CBTAPairingManager::ScanForBtDevices(list<shared_ptr<CBTEADetectedD
     switch (m_scanState)
     {
         case SS_INIT:
-            for (it = detectedDeviceList.begin(); it != detectedDeviceList.end(); it++)
+            for (it = detectedDeviceList.begin(); it != detectedDeviceList.end();
+                 it++)
             {
-                if (scanAllDevices || s_InquireCODList[m_nextInquireIndex] == (*it)->m_btCOD)
+                if (scanAllDevices ||
+                    s_InquireCODList[m_nextInquireIndex] == (*it)->m_btCOD)
                 {
                     if ((*it)->timeoutCounter != 0)
                     {
@@ -165,9 +177,10 @@ ERROR_CODE_T CBTAPairingManager::ScanForBtDevices(list<shared_ptr<CBTEADetectedD
 
             if (!scanAllDevices)
             {
-                RETURN_IF_FAILED(
-                    m_pBTASerialDevice->WriteData(
-                        "INQUIRY " + timeoutToString(timeoutSec) + "2" + s_InquireCODList[m_nextInquireIndex], true));
+                RETURN_IF_FAILED(m_pBTASerialDevice->WriteData(
+                    "INQUIRY " + timeoutToString(timeoutSec) + "2" +
+                        s_InquireCODList[m_nextInquireIndex],
+                    true));
                 m_currentCOD = s_InquireCODList[m_nextInquireIndex];
                 m_nextInquireIndex++;
                 if (m_nextInquireIndex >= sizeof(s_InquireCODList) / sizeof(CHAR8 *))
@@ -177,7 +190,8 @@ ERROR_CODE_T CBTAPairingManager::ScanForBtDevices(list<shared_ptr<CBTEADetectedD
             }
             else
             {
-                RETURN_IF_FAILED(m_pBTASerialDevice->WriteData("INQUIRY " + timeoutToString(timeoutSec), true));
+                RETURN_IF_FAILED(m_pBTASerialDevice->WriteData(
+                    "INQUIRY " + timeoutToString(timeoutSec), true));
             }
             m_scanTimer.ResetTime(timeoutSec + 1);
             m_scanState = SS_WAIT_FOR_SCAN_RESPONSE;
@@ -185,7 +199,8 @@ ERROR_CODE_T CBTAPairingManager::ScanForBtDevices(list<shared_ptr<CBTEADetectedD
 
         case SS_WAIT_FOR_SCAN_RESPONSE:
             RETURN_EC_IF_TRUE(ERROR_OPERATION_TIMED_OUT, m_scanTimer.IsTimeExpired());
-            RETURN_EC_IF_TRUE(ERROR_FAILED, m_pBTASerialDevice->GetCancelCurrentCommand());
+            RETURN_EC_IF_TRUE(ERROR_FAILED,
+                              m_pBTASerialDevice->GetCancelCurrentCommand());
 
             {
                 list<string> responseStrings;
@@ -203,11 +218,13 @@ ERROR_CODE_T CBTAPairingManager::ScanForBtDevices(list<shared_ptr<CBTEADetectedD
                             m_scanState = SS_CLEANUP;
                             break;
                         }
-                        else if (inquiryResults.size() >= 5 && inquiryResults[0] == "INQUIRY")
+                        else if (inquiryResults.size() >= 5 &&
+                                 inquiryResults[0] == "INQUIRY")
                         {
                             shared_ptr<CBTEADetectedDevice> pDevice;
 
-                            // The BT device name can have  a space in it, which throws the parsing off.
+                            // The BT device name can have  a space in it, which throws the
+                            // parsing off.
                             string btAddress = inquiryResults[1];
 
                             vector<string> deviceNameStrings;
@@ -215,23 +232,30 @@ ERROR_CODE_T CBTAPairingManager::ScanForBtDevices(list<shared_ptr<CBTEADetectedD
 
                             if (deviceNameStrings.size() == 3)
                             {
-                                string deviceName = m_pBTASerialDevice->Utf8Decode(deviceNameStrings[1]);
+                                string deviceName =
+                                    m_pBTASerialDevice->Utf8Decode(deviceNameStrings[1]);
 
                                 vector<string> remainingStrings;
                                 deviceNameStrings[2] = deviceNameStrings[2].substr(1);
-                                RETURN_IF_FAILED(SplitString(remainingStrings, deviceNameStrings[2], ' ', true));
+                                RETURN_IF_FAILED(SplitString(remainingStrings,
+                                                             deviceNameStrings[2], ' ', true));
 
                                 if (remainingStrings.size() == 2)
                                 {
                                     string deviceCOD = remainingStrings[0];
                                     string rssi = remainingStrings[1];
-                                    INT32U deviceCODValue = strtol(remainingStrings[0].c_str(), NULL, 16);
+                                    INT32U deviceCODValue =
+                                        strtol(remainingStrings[0].c_str(), NULL, 16);
 
-                                    if ((!scanAllDevices && to_lower(deviceCOD) == to_lower(m_currentCOD)) ||
-                                        (scanAllDevices && IsValidAudioRenderingDevice(deviceCODValue)))
+                                    if ((!scanAllDevices &&
+                                         to_lower(deviceCOD) == to_lower(m_currentCOD)) ||
+                                        (scanAllDevices &&
+                                         IsValidAudioRenderingDevice(deviceCODValue)))
                                     {
                                         list<shared_ptr<CBTEADetectedDevice> >::iterator deviceListIt;
-                                        for (deviceListIt = detectedDeviceList.begin(); deviceListIt != detectedDeviceList.end(); deviceListIt++)
+                                        for (deviceListIt = detectedDeviceList.begin();
+                                             deviceListIt != detectedDeviceList.end();
+                                             deviceListIt++)
                                         {
                                             if ((*deviceListIt)->m_btAddress == btAddress)
                                             {
@@ -248,7 +272,8 @@ ERROR_CODE_T CBTAPairingManager::ScanForBtDevices(list<shared_ptr<CBTEADetectedD
 
                                         pDevice->m_btAddress = btAddress;
 
-                                        if (deviceName != "UNKNOWN" && pDevice->m_btDeviceName != deviceName)
+                                        if (deviceName != "UNKNOWN" &&
+                                            pDevice->m_btDeviceName != deviceName)
                                         {
                                             pDevice->m_btDeviceName = deviceName;
                                         }
@@ -295,7 +320,8 @@ ERROR_CODE_T CBTAPairingManager::ScanForBtDevices(list<shared_ptr<CBTEADetectedD
 
     scanCleanupSe.Dismiss();
     // Expected output
-    return (m_scanState == SS_INIT) ? STATUS_OPERATION_INCOMPLETE : STATUS_SUCCESS;
+    return (m_scanState == SS_INIT) ? STATUS_OPERATION_INCOMPLETE
+                                    : STATUS_SUCCESS;
 }
 
 ERROR_CODE_T CBTAPairingManager::AbortBtDeviceScan(void)
@@ -314,12 +340,14 @@ ERROR_CODE_T CBTAPairingManager::UnpairAllDevices()
     return STATUS_SUCCESS;
 }
 
-ERROR_CODE_T CBTAPairingManager::OpenConnection(string btAddress, string &linkIdOut)
+ERROR_CODE_T CBTAPairingManager::OpenConnection(string btAddress,
+                                                string &linkIdOut)
 {
     CSimpleLock myLock(&m_CS);
 
     m_pBTASerialDevice->FlushRxBuffer();
-    RETURN_IF_FAILED(m_pBTASerialDevice->WriteData("OPEN " + btAddress + " A2DP 0", true));
+    RETURN_IF_FAILED(
+        m_pBTASerialDevice->WriteData("OPEN " + btAddress + " A2DP 0", true));
     TRI_STATE_T success = TS_AUTO;
 
     list<string> expectedResponseStrings;
@@ -331,10 +359,12 @@ ERROR_CODE_T CBTAPairingManager::OpenConnection(string btAddress, string &linkId
     while (!scanTimer.IsTimeExpired() && success == TS_AUTO)
     {
         PetWatchdog();
-        RETURN_EC_IF_TRUE(ERROR_FAILED, m_pBTASerialDevice->GetCancelCurrentCommand());
+        RETURN_EC_IF_TRUE(ERROR_FAILED,
+                          m_pBTASerialDevice->GetCancelCurrentCommand());
 
         list<string> responseStrings;
-        ERROR_CODE_T er = m_pBTASerialDevice->ReceiveData(responseStrings, 100, expectedResponseStrings);
+        ERROR_CODE_T er = m_pBTASerialDevice->ReceiveData(responseStrings, 100,
+                                                          expectedResponseStrings);
         if (SUCCEEDED(er))
         {
             list<string>::iterator it;
@@ -349,7 +379,8 @@ ERROR_CODE_T CBTAPairingManager::OpenConnection(string btAddress, string &linkId
                     success = TS_TRUE;
                     break;
                 }
-                else if (openResponseStrings[0] == "OPEN_ERROR" || openResponseStrings[0] == "PAIR_ERROR")
+                else if (openResponseStrings[0] == "OPEN_ERROR" ||
+                         openResponseStrings[0] == "PAIR_ERROR")
                 {
                     success = TS_FALSE;
                     break;
@@ -365,7 +396,8 @@ ERROR_CODE_T CBTAPairingManager::OpenConnection(string btAddress, string &linkId
     return STATUS_SUCCESS;
 }
 
-ERROR_CODE_T CBTAPairingManager::PairDevice(string btAddress, string &linkIdOut)
+ERROR_CODE_T CBTAPairingManager::PairDevice(string btAddress,
+                                            string &linkIdOut)
 {
     CSimpleLock myLock(&m_CS);
 
@@ -381,10 +413,12 @@ ERROR_CODE_T CBTAPairingManager::PairDevice(string btAddress, string &linkIdOut)
     while (!scanTimer.IsTimeExpired() && success == TS_AUTO)
     {
         PetWatchdog();
-        RETURN_EC_IF_TRUE(ERROR_FAILED, m_pBTASerialDevice->GetCancelCurrentCommand());
+        RETURN_EC_IF_TRUE(ERROR_FAILED,
+                          m_pBTASerialDevice->GetCancelCurrentCommand());
 
         list<string> responseStrings;
-        if (SUCCEEDED(m_pBTASerialDevice->ReceiveData(responseStrings, 100, expectedResponseStrings)))
+        if (SUCCEEDED(m_pBTASerialDevice->ReceiveData(responseStrings, 100,
+                                                      expectedResponseStrings)))
         {
             list<string>::iterator it;
             for (it = responseStrings.begin(); it != responseStrings.end(); it++)
@@ -417,19 +451,21 @@ ERROR_CODE_T CBTAPairingManager::PairToConnectedDevice()
 {
     bool connectedToDevice = false;
     list<shared_ptr<CBTEADetectedDevice> >::iterator it;
-    for (it = m_detectedDeviceList.begin(); it != m_detectedDeviceList.end(); it++)
+    for (it = m_detectedDeviceList.begin(); it != m_detectedDeviceList.end();
+         it++)
     {
         if (m_PairedBtDeviceAddress == (*it)->m_btAddress)
         {
-            DebugPrintf(DEBUG_TRACE_MESSAGE, DEBUG_NO_LOGGING, m_LogId.c_str(), "Connecting to %s...",
-                        (*it)->m_btDeviceName.c_str());
+            DebugPrintf(DEBUG_TRACE_MESSAGE, DEBUG_NO_LOGGING, m_LogId.c_str(),
+                        "Connecting to %s...", (*it)->m_btDeviceName.c_str());
 
             string linkId = "";
 
             if (SUCCEEDED(OpenConnection((*it)->m_btAddress, linkId)))
             {
                 SetCurrentConnectedDevice((*it)->m_btAddress, linkId);
-                DebugPrintf(DEBUG_TRACE_MESSAGE, DEBUG_NO_LOGGING, m_LogId.c_str(), "Connected to %s...", (*it)->m_btDeviceName.c_str());
+                DebugPrintf(DEBUG_TRACE_MESSAGE, DEBUG_NO_LOGGING, m_LogId.c_str(),
+                            "Connected to %s...", (*it)->m_btDeviceName.c_str());
                 connectedToDevice = true;
             }
             break;
@@ -451,7 +487,8 @@ ERROR_CODE_T CBTAPairingManager::CloseConnection(string linkId)
     while (!scanTimer.IsTimeExpired() && !success)
     {
         PetWatchdog();
-        RETURN_EC_IF_TRUE(ERROR_FAILED, m_pBTASerialDevice->GetCancelCurrentCommand());
+        RETURN_EC_IF_TRUE(ERROR_FAILED,
+                          m_pBTASerialDevice->GetCancelCurrentCommand());
 
         list<string> responseStrings;
         if (SUCCEEDED(m_pBTASerialDevice->ReceiveData(responseStrings, 100)))
@@ -462,7 +499,9 @@ ERROR_CODE_T CBTAPairingManager::CloseConnection(string linkId)
                 vector<string> closeResponseStrings;
                 RETURN_IF_FAILED(SplitString(closeResponseStrings, *it, ' ', true));
 
-                if (closeResponseStrings.size() >= 2 && closeResponseStrings[0] == "CLOSE_OK" && closeResponseStrings[1] == linkId)
+                if (closeResponseStrings.size() >= 2 &&
+                    closeResponseStrings[0] == "CLOSE_OK" &&
+                    closeResponseStrings[1] == linkId)
                 {
                     success = true;
                     break;
@@ -521,12 +560,14 @@ ERROR_CODE_T CBTAPairingManager::UpdatePairedDeviceList(void)
 
                 if (SUCCEEDED(GetConnectedDeviceName(pairStrings[1], deviceName)))
                 {
-                    m_pairedDeviceInfo.push_back(make_shared<CBTEAPairedDevice>(pairStrings[1], deviceName));
+                    m_pairedDeviceInfo.push_back(
+                        make_shared<CBTEAPairedDevice>(pairStrings[1], deviceName));
                 }
             }
             else
             {
-                m_pairedDeviceInfo.push_back(make_shared<CBTEAPairedDevice>(pairStrings[1], ""));
+                m_pairedDeviceInfo.push_back(
+                    make_shared<CBTEAPairedDevice>(pairStrings[1], ""));
             }
         }
     }
@@ -548,12 +589,14 @@ ERROR_CODE_T CBTAPairingManager::PerformBackgroundDeviceNameRetrieval(void)
     {
         shared_ptr<CBTEAPairedDevice> pairedDevice = *it;
 
-        if (pairedDevice->m_btDeviceName.empty() && !pairedDevice->m_nameRequested)
+        if (pairedDevice->m_btDeviceName.empty() &&
+            !pairedDevice->m_nameRequested)
         {
             resetRequestFlags = false;
             pairedDevice->m_nameRequested = true;
 
-            if (SUCCEEDED(GetConnectedDeviceName(pairedDevice->m_btAddress, deviceName)))
+            if (SUCCEEDED(
+                    GetConnectedDeviceName(pairedDevice->m_btAddress, deviceName)))
             {
                 pairedDevice->m_btDeviceName = deviceName;
             }
@@ -563,7 +606,8 @@ ERROR_CODE_T CBTAPairingManager::PerformBackgroundDeviceNameRetrieval(void)
 
     if (resetRequestFlags)
     {
-        for (it = m_pairedDeviceInfo.begin(); it != m_pairedDeviceInfo.end(); it++)
+        for (it = m_pairedDeviceInfo.begin(); it != m_pairedDeviceInfo.end();
+             it++)
         {
             shared_ptr<CBTEAPairedDevice> pairedDevice = *it;
             pairedDevice->m_nameRequested = false;
@@ -644,13 +688,15 @@ bool CBTAPairingManager::IsValidAudioRenderingDevice(INT32U deviceCODValue)
     // Mask: 0x0000FC (bits 2-7), Shift: >> 2 to align with LSB.
     INT32U minorDeviceClass = ((deviceCODValue & 0x0000FC) >> 2);
 
-    // Validate the extracted classes against known audio rendering device classes.
+    // Validate the extracted classes against known audio rendering device
+    // classes.
     RETURN_BOOL_IF_FALSE(false, majorServiceClass == MAJOR_SERVICE_AUDIO);
     RETURN_BOOL_IF_FALSE(false, majorDeviceClass == MAJOR_DEVICE_AUDIO_VIDEO);
-    RETURN_BOOL_IF_FALSE(false, minorDeviceClass == AV_MINOR_DEVICE_WEARABLE_HEADSET ||
-                                    minorDeviceClass == AV_MINOR_DEVICE_LOUDSPEAKER ||
-                                    minorDeviceClass == AV_MINOR_DEVICE_HEADPHONES ||
-                                    minorDeviceClass == AV_MINOR_DEVICE_PORTABLE_AUDIO);
+    RETURN_BOOL_IF_FALSE(false,
+                         minorDeviceClass == AV_MINOR_DEVICE_WEARABLE_HEADSET ||
+                             minorDeviceClass == AV_MINOR_DEVICE_LOUDSPEAKER ||
+                             minorDeviceClass == AV_MINOR_DEVICE_HEADPHONES ||
+                             minorDeviceClass == AV_MINOR_DEVICE_PORTABLE_AUDIO);
 
     return true;
 }

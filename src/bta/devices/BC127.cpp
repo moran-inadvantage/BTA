@@ -58,10 +58,12 @@ vector<BAUDRATE> BC127::GetBaudrateList()
 {
     vector<BAUDRATE> rates;
     rates.push_back(BAUDRATE_9600);
+#ifndef __x86_64__
     rates.push_back(BAUDRATE_115200);
     rates.push_back(BAUDRATE_57600);
     rates.push_back(BAUDRATE_38400);
     rates.push_back(BAUDRATE_19200);
+#endif
     return rates;
 }
 

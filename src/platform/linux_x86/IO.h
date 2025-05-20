@@ -2,21 +2,19 @@
 
 #include <memory>
 
+#include "CPPInterfaces.h"
 #include "types.h"
 
 using namespace std;
 
-class IBTAdapterStatusTable;
-
 class IAVDSNode
 {
-public:
-    virtual ERROR_CODE_T GetBTAdapterStatusTable(
-        shared_ptr<IBTAdapterStatusTable> &pBTAdapterStatusTable);
+  public:
+    virtual ERROR_CODE_T GetBTAdapterConfigTable(shared_ptr<IBTAdapterConfigTable> &pBTAdapterConfigTable);
 };
 
 class CIO
 {
-public:
+  public:
     static shared_ptr<IAVDSNode> g_pNode;
 };

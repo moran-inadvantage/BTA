@@ -101,6 +101,9 @@ ERROR_CODE_T IBTADeviceDriver::ResetAndEstablishSerialConnection()
     // Even if we find the right one, may not be our device
     do
     {
+        BAUDRATE rate;
+        GetBaudrate(rate);
+        DebugPrintf(DEBUG_TRACE, DEBUG_TRACE, m_DebugId.c_str(), "Trying next baud rate: %d\n", rate);
         // These can fail at bad baud rates - don't bother error checking
         EnterCommandMode();
         SendReset();
@@ -205,7 +208,8 @@ ERROR_CODE_T IBTADeviceDriver::TryNextBaudrate()
         {
             if (i + 1 < baudRateListLength)
             {
-                RETURN_IF_FAILED(m_pBTASerialDevice->SetBaudrate(preferredBaudRates[i + 1]));
+                BAUDRATE nextRate = preferredBaudRates[i + 1];
+                RETURN_IF_FAILED(m_pBTASerialDevice->SetBaudrate(nextRate));
                 return STATUS_SUCCESS;
             }
         }
@@ -386,7 +390,9 @@ string IBTADeviceDriver::StateToString(int state)
 
 void IBTADeviceDriver::ChangeBluetoothConfigSetupState(int &state, int desiredState = BT_STATE_NOT_USED)
 {
-    BluetoothConfigSetupStates_t newState = (desiredState == -1) ? static_cast<BluetoothConfigSetupStates_t>(state + 1) : static_cast<BluetoothConfigSetupStates_t>(desiredState);
+    BluetoothConfigSetupStates_t newState = (desiredState == BT_STATE_NOT_USED)
+                                                ? static_cast<BluetoothConfigSetupStates_t>(state + 1)
+                                                : static_cast<BluetoothConfigSetupStates_t>(desiredState);
 
     DebugPrintf(DEBUG_TRACE_MESSAGE, DEBUG_TRACE_MESSAGE, m_DebugId.c_str(),
                 "Moving from %s to %s\n", StateToString(state).c_str(), StateToString(newState).c_str());

@@ -1,9 +1,7 @@
 #include <cstdarg>
 #include <string.h>
 
-
 #include "BTASerialDevice.h"
-#include "BTAStatusTable.h"
 #include "ExtIO.h"
 #include "IO.h"
 

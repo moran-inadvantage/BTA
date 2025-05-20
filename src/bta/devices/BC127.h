@@ -12,7 +12,6 @@
 #include "BTASerialDevice.h"
 #include "types.h"
 
-
 class BC127 : public IBTADeviceDriver
 {
   public:
