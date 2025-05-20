@@ -1,14 +1,22 @@
+/********************************************************************************************************
+    File Name:  BTADeviceFactory.h
+
+    Notes:      This class is a factory class used to create instances of IBTADeviceDriver.
+                It will determine what type of BT device we're connected to and then return the valid instance.
+
+********************************************************************************************************/
+
 #pragma once
 
 #include <memory>
 
+#include "iuart.h"
 #include "BTADeviceDriver.h"
-#include "BTASerialDevice.h"
 
 class BTADeviceFactory
 {
 public:
-    // Factory method to create a BTADeviceDriver instance. Will determine what type of BT device we're connected
+    // Factory method to create a IBTADeviceDriver instance. Will determine what type of BT device we're connected
     // to and then return the valid instance
-    static shared_ptr<BTADeviceDriver> CreateBTADeviceDriver(shared_ptr<BTASerialDevice> pBTASerialDevice);
+    static shared_ptr<IBTADeviceDriver> CreateBTADeviceDriver(shared_ptr<IUart> uart);
 };

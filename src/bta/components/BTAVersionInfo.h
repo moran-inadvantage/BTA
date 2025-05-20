@@ -30,13 +30,14 @@ typedef enum
     BC127_FW_REV_7_3,
 } BC127FirmwareRevision_t;
 
-class BTAVersionInfo_t
+class CBTAVersionInfo_t
 {
 public:
-    BTAVersionInfo_t()
+    CBTAVersionInfo_t()
         : hardware(BTA_HW_UNKNOWN), major(0), minor(0), patch(0)
     {
     }
+    // If you add anything below, update CopyInto
     BTAHardware_t hardware;
     union {
         BC127FirmwareRevision_t BC127FwRev;
@@ -77,7 +78,7 @@ public:
         return hardware != BTA_HW_UNKNOWN && !versionString.empty();
     }
 
-    void CopyInto(shared_ptr<BTAVersionInfo_t>& version)
+    void CopyInto(shared_ptr<CBTAVersionInfo_t>& version)
     {
         if (!version) return;
 
@@ -97,5 +98,15 @@ public:
         {
             version->BC127FwRev = this->BC127FwRev;
         }
+    }
+
+    void Clear()
+    {
+        hardware = BTA_HW_UNKNOWN;
+        major = 0;
+        minor = 0;
+        patch = 0;
+        buildNumber.clear();
+        versionString.clear();
     }
 };

@@ -155,15 +155,18 @@ string IDC777::GetUniqueConfigExpectedString(UniqueConfigSettings_t configOption
         }
         case UNIQUE_CONFIG_SETTING_PROFILES:
         {
+            string multipleConnections = "OFF";
             string maxHfpConnections = "0";
             string maxAghfpConnections = "0";
-            string maxA2dpSinkConnections = m_isInputDevice ? "2" : "0";
-            string maxA2dpSourceConnections = m_isInputDevice ? "0" : "1";
+            string maxA2dpSinkConnections = (m_DeviceMode == BTA_DEVICE_MODE_INPUT) ? "2" : "0";
+            string maxA2dpSourceConnections = (m_DeviceMode == BTA_DEVICE_MODE_INPUT) ? "0" : "1";
             string maxAvrcpConnections = "0";
             string maxBleConnections = "0";
             string maxSppConnections = "0";
 
-            return maxHfpConnections + " " +
+            return 
+                   multipleConnections + " " +
+                   maxHfpConnections + " " +
                    maxAghfpConnections + " " +
                    maxA2dpSinkConnections + " " +
                    maxA2dpSourceConnections + " " +
@@ -210,9 +213,28 @@ string IDC777::GetUniqueConfigSettingString(UniqueConfigSettings_t configOption,
     }
 }
 
-ERROR_CODE_T IDC777::GetDeviceCfgPairedDevice()
+ERROR_CODE_T IDC777::GetDeviceCfgRemoteAddress(string &remoteAddress)
 {
     DebugPrintf(DEBUG_TRACE_INFO, DEBUG_TRACE_INFO, m_debugId, "Get Paired Device Function not Implemented\n");
-    m_PairedDevice = "";
+    remoteAddress = "";
     return STATUS_SUCCESS;
+}
+
+ERROR_CODE_T IDC777::SetDeviceCfgRemoteAddress(string remoteAddress)
+{
+    // This is a placeholder function.
+    return STATUS_SUCCESS;
+}
+
+ERROR_CODE_T IDC777::SetBluetoothDiscoverabilityState(bool connectable, bool discoverable)
+{
+    RETURN_IF_FAILED(m_pBTASerialDevice->WriteData("CONNECTABLE " + connectable ? "ON" : "OFF"));
+    RETURN_IF_FAILED(m_pBTASerialDevice->WriteData("DISCOVERABLE " + discoverable ? "ON" : "OFF"));
+
+    return STATUS_SUCCESS;
+}
+
+bool IDC777::ShouldScanForAllDevices()
+{
+    return m_ShouldScanForAllDevices;
 }

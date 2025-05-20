@@ -4,36 +4,25 @@
 #include "BC127.h"
 #include "IDC777.h"
 
-shared_ptr<BTADeviceDriver> BTADeviceFactory::CreateBTADeviceDriver(shared_ptr<BTASerialDevice> pBTASerialDevice)
+shared_ptr<IBTADeviceDriver> BTADeviceFactory::CreateBTADeviceDriver(shared_ptr<IUart> uart)
 {
-    RETURN_NULL_IF_NULL(pBTASerialDevice);
+    RETURN_NULL_IF_NULL(uart);
 
-    shared_ptr<BTAVersionInfo_t> versionInfo = make_shared<BTAVersionInfo_t>();
+    shared_ptr<BTASerialDevice> pBtaSerialDevice = make_shared<BTASerialDevice>();
+    RETURN_NULL_IF_FAILED(pBtaSerialDevice->SetUArt(uart));
+    RETURN_NULL_IF_FAILED(pBtaSerialDevice->SetCommEnable(true));
+
+    shared_ptr<CBTAVersionInfo_t> versionInfo = make_shared<CBTAVersionInfo_t>();
     RETURN_NULL_IF_NULL(versionInfo);
 
-    auto tryCreateDriver = [&](shared_ptr<BTADeviceDriver> driver, int expectedHardware) -> shared_ptr<BTADeviceDriver> {
+    // Create a lambda function to try creating a driver. We should be able to read the HW ID out of the version and have it match
+    auto tryCreateDriver = [&](shared_ptr<IBTADeviceDriver> driver, int expectedHardware) -> shared_ptr<IBTADeviceDriver> {
         RETURN_NULL_IF_NULL(driver);
 
-        RETURN_NULL_IF_FAILED(driver->SetAndOpenBtaSerialDevice(pBTASerialDevice));
-
-        // Try various baud rates until we find the correct one.
-        // Even if we find the right one, may not be our device
-        do
-        {
-            driver->EnterCommandMode();
-            driver->SendReset();
-
-            // Expected to fail if baud rate is incorrect
-            if (FAILED(driver->GetDeviceVersion(versionInfo)))
-            {
-                continue;
-            }
-
-            if (versionInfo->hardware == expectedHardware)
-            {
-                break;
-            }
-        } while (SUCCEEDED(driver->TryNextBaudrate()));
+        // Attempts to open serial connection
+        RETURN_NULL_IF_FAILED(driver->ResetAndEstablishSerialConnection(pBtaSerialDevice));
+        // After it's open, lets get the device version and validate it
+        RETURN_NULL_IF_FAILED(driver->GetDeviceVersion(versionInfo));
 
         return (versionInfo->hardware == expectedHardware) ? driver : NULL;
     };

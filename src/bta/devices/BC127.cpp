@@ -174,8 +174,8 @@ string BC127::GetUniqueConfigExpectedString(UniqueConfigSettings_t configOption,
         {
             string maxHfpConnections = "0";
             string maxAghfpConnections = "0";
-            string maxA2dpSinkConnections = m_isInputDevice ? "2" : "0";
-            string maxA2dpSourceConnections = m_isInputDevice ? "0" : "1";
+            string maxA2dpSinkConnections = (m_DeviceMode == BTA_DEVICE_MODE_INPUT) ? "2" : "0";
+            string maxA2dpSourceConnections = (m_DeviceMode == BTA_DEVICE_MODE_INPUT) ? "0" : "1";
             string maxAvrcpConnections = "0";
             string maxBleConnections = "0";
             string maxSppConnections = "0";
@@ -244,7 +244,7 @@ string BC127::GetUniqueConfigSettingString(UniqueConfigSettings_t configOption, 
     }
 }
 
-ERROR_CODE_T BC127::GetDeviceCfgPairedDevice()
+ERROR_CODE_T BC127::GetDeviceCfgRemoteAddress(string &remote)
 {
     string remoteAddress;
     RETURN_IF_FAILED(m_pBTASerialDevice->GetCfgValue(remoteAddress, "REMOTE_ADDR"));
@@ -260,17 +260,50 @@ ERROR_CODE_T BC127::GetDeviceCfgPairedDevice()
             remoteAddress.insert(6, "000000000000", 14 - remoteAddress.size());
         }
         remoteAddress.insert(6, remoteAddress, 12, 2);
-        m_PairedDevice = remoteAddress.substr(0, 12);
+        remote = remoteAddress.substr(0, 12);
     }
     else
     {
-        m_PairedDevice = remoteAddress;
+        remote = remoteAddress;
     }
 
-    if (m_PairedDevice == "000000000000")
+    if (remote == "000000000000")
     {
-        m_PairedDevice = "";
+        remote = "";
     }
 
     return STATUS_SUCCESS;
+}
+
+ERROR_CODE_T BC127::SetDeviceCfgRemoteAddress(string remoteAddress)
+{
+    m_pBTASerialDevice->SetCfgValue("REMOTE_ADDR", remoteAddress);
+
+    return STATUS_SUCCESS;
+}
+
+ERROR_CODE_T BC127::SetBluetoothDiscoverabilityState(bool connectable, bool discoverable)
+{
+    if (m_BtFwVersion.BC127FwRev <= BC127_FW_REV_6_1_5)
+    {
+        RETURN_IF_FAILED(m_pBTASerialDevice->WriteData("CONNECTABLE " + connectable ? "ON" : "OFF"));
+        RETURN_IF_FAILED(m_pBTASerialDevice->WriteData("DISCOVERABLE " + discoverable ? "ON" : "OFF"));
+    }
+    else
+    {
+        string connect = connectable ? "ON" : "OFF";
+        string discover = discoverable ? "ON" : "OFF";
+        RETURN_IF_FAILED(m_pBTASerialDevice->WriteData("BT_STATE " + connect + " " + discover));
+    }
+    return STATUS_SUCCESS;
+}
+
+bool BC127::ShouldScanForAllDevices()
+{
+    if (m_BtFwVersion.BC127FwRev < BC127_FW_REV_7_0)
+    {
+        return true;
+    }
+
+    return m_ShouldScanForAllDevices;
 }

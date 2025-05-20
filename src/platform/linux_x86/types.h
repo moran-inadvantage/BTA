@@ -5,6 +5,11 @@
 #include <libgen.h>
 #include <cstring>
 
+// Allows sharedptr and whatnot
+#include <memory>
+
+using namespace std;
+
 // types
 #define BOOLEAN bool
 #define CHAR8 char
@@ -119,6 +124,14 @@
         } \
     } while (0)
 
+#define RETURN_BOOL_IF_FALSE(ret, check) \
+    do { \
+        if (!(check)) { \
+            printf("RETURN_BOOL_IF_FALSE: %s:%d -> failed\n", __FILENAME__, __LINE__); \
+            return ret; \
+        } \
+    } while (0)
+
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
@@ -134,7 +147,7 @@
 // Printing
 #define DebugPrintf(verbosity, logLevel, debugID, format, ...) \
     do { \
-        if ((verbosity) >= (100)) { \
+        if ((verbosity) >= (0)) { \
             printf(format, ##__VA_ARGS__); \
         } \
     } while (0)

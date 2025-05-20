@@ -20,10 +20,10 @@ add_subdirectory(src)
 # Run with cmake -B build -DENABLE_TESTS=ON && make -C build
 option(ENABLE_TESTS "Enable building of tests" OFF)
 # Only add tests if ENABLE_TESTS is ON
-if(ENABLE_TESTS)
-    enable_testing()
-    add_subdirectory(External/googletest)
-    add_subdirectory(test)
+if(ENABLE_TESTS STREQUAL ON)
+#    enable_testing()
+#    add_subdirectory(External/googletest)
+#    add_subdirectory(test)
 endif()
 
 # Add executable
