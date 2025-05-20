@@ -1,13 +1,13 @@
 #include "BTAPairingManager.h"
 
-#include "ScopeExit.h"
-#include "IO.h"
-#include "ExtIO.h"
-#include "BTAStatusTable.h"
 #include "BTADeviceDriver.h"
+#include "BTAStatusTable.h"
+#include "ExtIO.h"
+#include "IO.h"
+#include "ScopeExit.h"
 
 const CHAR8 *CBTAPairingManager::s_InquireCODList[] =
-{
+    {
         "240404", // Audio Rendering, Wearable Headset Device
         //"240414", // Audio Rendering, Loudspeaker
         "240418", // Audio Rendering, Headphones
@@ -31,10 +31,10 @@ void CBTAPairingManager::ResetStateMachine(void)
     m_receivedOpenNotification = false;
 }
 
-ERROR_CODE_T CBTAPairingManager::OnOpenNotificationReceived(bool state)
+ERROR_CODE_T CBTAPairingManager::OnOpenNotificationReceived(BOOLEAN state)
 {
     CSimpleLock myLock(&m_CS);
-    DebugPrintf(DEBUG_TRACE_INFO, DEBUG_TRACE_INFO, m_pBTASerialDevice->m_DebugID, "Open notification received: %s\n", state ? "true" : "false");
+    DebugPrintf(DEBUG_TRACE, DEBUG_TRACE, m_LogId.c_str(), "Open notification received: %s\n", state ? "true" : "false");
     m_receivedOpenNotification = state;
     return STATUS_SUCCESS;
 }
@@ -141,7 +141,6 @@ ERROR_CODE_T CBTAPairingManager::ScanForBtDevices(list<shared_ptr<CBTEADetectedD
         },
         CBTAPairingManager *, pThis);
 
-
     RETURN_EC_IF_TRUE(STATUS_SUCCESS, m_scanAbort);
     list<shared_ptr<CBTEADetectedDevice> >::iterator it;
 
@@ -168,9 +167,7 @@ ERROR_CODE_T CBTAPairingManager::ScanForBtDevices(list<shared_ptr<CBTEADetectedD
             {
                 RETURN_IF_FAILED(
                     m_pBTASerialDevice->WriteData(
-                            "INQUIRY " + timeoutToString(timeoutSec) + "2" + s_InquireCODList[m_nextInquireIndex], true
-                        )
-                );
+                        "INQUIRY " + timeoutToString(timeoutSec) + "2" + s_InquireCODList[m_nextInquireIndex], true));
                 m_currentCOD = s_InquireCODList[m_nextInquireIndex];
                 m_nextInquireIndex++;
                 if (m_nextInquireIndex >= sizeof(s_InquireCODList) / sizeof(CHAR8 *))
@@ -218,7 +215,7 @@ ERROR_CODE_T CBTAPairingManager::ScanForBtDevices(list<shared_ptr<CBTEADetectedD
 
                             if (deviceNameStrings.size() == 3)
                             {
-                                string deviceName =  m_pBTASerialDevice->Utf8Decode(deviceNameStrings[1]);
+                                string deviceName = m_pBTASerialDevice->Utf8Decode(deviceNameStrings[1]);
 
                                 vector<string> remainingStrings;
                                 deviceNameStrings[2] = deviceNameStrings[2].substr(1);
@@ -273,14 +270,15 @@ ERROR_CODE_T CBTAPairingManager::ScanForBtDevices(list<shared_ptr<CBTEADetectedD
             if (!detectedDeviceList.empty())
             {
                 // filter out any detected devices that are our own BT Adapters
-                shared_ptr<IBTAdapterStatusTable> pStatusTable;
-                CIO::g_pNode->GetBTAdapterStatusTable(pStatusTable);
-                if (pStatusTable != NULL)
+                shared_ptr<IBTAdapterConfigTable> pConfigTable;
+                CIO::g_pNode->GetBTAdapterConfigTable(pConfigTable);
+                if (pConfigTable != NULL)
                 {
                     list<shared_ptr<CBTEADetectedDevice> >::iterator it;
                     for (it = detectedDeviceList.begin(); it != detectedDeviceList.end();)
                     {
-                        if (pStatusTable->IsIABluetoothAdapter((*it)->m_btAddress))
+                        if (pConfigTable->IsIABluetoothAdapter((*it)->m_btAddress) ||
+                            pConfigTable->IsPairedToIABluetoothAdapter((*it)->m_btAddress))
                         {
                             it = detectedDeviceList.erase(it);
                         }
@@ -423,7 +421,7 @@ ERROR_CODE_T CBTAPairingManager::PairToConnectedDevice()
     {
         if (m_PairedBtDeviceAddress == (*it)->m_btAddress)
         {
-            DebugPrintf(DEBUG_TRACE_MESSAGE, DEBUG_NO_LOGGING, m_TaskID, "Connecting to %s...",
+            DebugPrintf(DEBUG_TRACE_MESSAGE, DEBUG_NO_LOGGING, m_LogId.c_str(), "Connecting to %s...",
                         (*it)->m_btDeviceName.c_str());
 
             string linkId = "";
@@ -431,7 +429,7 @@ ERROR_CODE_T CBTAPairingManager::PairToConnectedDevice()
             if (SUCCEEDED(OpenConnection((*it)->m_btAddress, linkId)))
             {
                 SetCurrentConnectedDevice((*it)->m_btAddress, linkId);
-                DebugPrintf(DEBUG_TRACE_MESSAGE, DEBUG_NO_LOGGING, m_TaskID, "Connected to %s...", (*it)->m_btDeviceName.c_str());
+                DebugPrintf(DEBUG_TRACE_MESSAGE, DEBUG_NO_LOGGING, m_LogId.c_str(), "Connected to %s...", (*it)->m_btDeviceName.c_str());
                 connectedToDevice = true;
             }
             break;
@@ -575,7 +573,6 @@ ERROR_CODE_T CBTAPairingManager::PerformBackgroundDeviceNameRetrieval(void)
     return STATUS_SUCCESS;
 }
 
-
 // These enumeration values are defined in the Bluetooth specification.
 typedef enum
 {
@@ -590,7 +587,7 @@ typedef enum
     MAJOR_SERVICE_AUDIO = 0x00000100,
     MAJOR_SERVICE_TELEPHONY = 0x00000200,
     MAJOR_SERVICE_INFORMATION = 0x00000400,
-}MAJOR_SERVICE_CLASS;
+} MAJOR_SERVICE_CLASS;
 
 typedef enum
 {
@@ -605,7 +602,7 @@ typedef enum
     MAJOR_DEVICE_TOY = 0x00000008,
     MAJOR_DEVICE_HEALTH = 0x00000009,
     MAJOR_DEVICE_UNCATEGORIZED = 0x0000001F,
-}MAJOR_DEVICE_CLASS;
+} MAJOR_DEVICE_CLASS;
 
 typedef enum
 {
@@ -628,7 +625,7 @@ typedef enum
     AV_MINOR_DEVICE_VIDEO_CONFERENCING = 0x10,
     AV_MINOR_DEVICE_RESERVED_2 = 0x11,
     AV_MINOR_DEVICE_GAMING_TOY = 0x12,
-}AV_MINOR_DEVICE_CLASS;
+} AV_MINOR_DEVICE_CLASS;
 
 bool CBTAPairingManager::IsValidAudioRenderingDevice(INT32U deviceCODValue)
 {
@@ -651,10 +648,9 @@ bool CBTAPairingManager::IsValidAudioRenderingDevice(INT32U deviceCODValue)
     RETURN_BOOL_IF_FALSE(false, majorServiceClass == MAJOR_SERVICE_AUDIO);
     RETURN_BOOL_IF_FALSE(false, majorDeviceClass == MAJOR_DEVICE_AUDIO_VIDEO);
     RETURN_BOOL_IF_FALSE(false, minorDeviceClass == AV_MINOR_DEVICE_WEARABLE_HEADSET ||
-                                minorDeviceClass == AV_MINOR_DEVICE_LOUDSPEAKER ||
-                                minorDeviceClass == AV_MINOR_DEVICE_HEADPHONES ||
-                                minorDeviceClass == AV_MINOR_DEVICE_PORTABLE_AUDIO);
+                                    minorDeviceClass == AV_MINOR_DEVICE_LOUDSPEAKER ||
+                                    minorDeviceClass == AV_MINOR_DEVICE_HEADPHONES ||
+                                    minorDeviceClass == AV_MINOR_DEVICE_PORTABLE_AUDIO);
 
     return true;
 }
-

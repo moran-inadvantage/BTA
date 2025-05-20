@@ -12,9 +12,10 @@
 #pragma once
 
 #include "types.h"
+
+#include "BTAPairingManager.h"
 #include "BTASerialDevice.h"
 #include "BTAVersionInfo.h"
-#include "BTAPairingManager.h"
 #include "ToneControl.h"
 
 typedef enum
@@ -25,7 +26,7 @@ typedef enum
 
 class IBTADeviceDriver
 {
-public:
+  public:
     IBTADeviceDriver();
 
     // Determines if the device will be used as an input or output module
@@ -35,7 +36,7 @@ public:
     virtual ERROR_CODE_T SetAndOpenBtaSerialDevice(shared_ptr<BTASerialDevice> pBTASerialDevice);
 
     // Attempts to read device version, which contains hardware and firmware version
-    virtual ERROR_CODE_T GetDeviceVersion(shared_ptr<CBTAVersionInfo_t>& version);
+    virtual ERROR_CODE_T GetDeviceVersion(shared_ptr<CBTAVersionInfo_t> &version);
 
     // Is communication between the device over UART open and valid?
     virtual bool IsCommEnabled(void);
@@ -47,7 +48,9 @@ public:
     // Device is fully configured
     virtual bool IsDeviceReadyForUse();
 
-    virtual ERROR_CODE_T ResetAndEstablishSerialConnection(shared_ptr<BTASerialDevice> pBtaSerialDevice = NULL);
+    // virtual ERROR_CODE_T ResetAndEstablishSerialConnection(shared_ptr<BTASerialDevice> pBtaSerialDevice = NULL);
+    virtual ERROR_CODE_T ResetAndEstablishSerialConnection(shared_ptr<BTASerialDevice> pBtaSerialDevice);
+    virtual ERROR_CODE_T ResetAndEstablishSerialConnection();
 
     // Pets the uart watchdog on the BT adapter
     virtual ERROR_CODE_T WatchdogPet(bool flushBuffer = false);
@@ -55,7 +58,10 @@ public:
     // Sets Local Address - Read only attribute
     virtual ERROR_CODE_T GetDeviceCfgLocalAddress(void);
     // Read only attribute to the device. A unique address for each module
-    virtual string GetPublicAddress(void) { return m_LocalAddress; }
+    virtual string GetPublicAddress(void)
+    {
+        return m_LocalAddress;
+    }
 
     // An inquiry is a scan for devices around us. This is an async call
     virtual ERROR_CODE_T SendInquiry(INT32U timeout);
@@ -67,8 +73,11 @@ public:
     virtual ERROR_CODE_T SendPlayCommand(string linkId);
 
     // Starts play tones
-    virtual ERROR_CODE_T PlayNextMusicSequence(void) { return m_ToneControl.PlayNextMusicSequence(m_pBTASerialDevice); }
-    
+    virtual ERROR_CODE_T PlayNextMusicSequence(void)
+    {
+        return m_ToneControl.PlayNextMusicSequence(m_pBTASerialDevice);
+    }
+
     //////////////////////////////////////////////////////////////////////////
     // Monitoring - Intended to be called periodically by the controller
     virtual ERROR_CODE_T MonitorStatus(void);
@@ -76,27 +85,52 @@ public:
     //////////////////////////////////////////////////////////////////////////
     // Pairing Manager pass through
 
-    // Unpairs all units
-    virtual ERROR_CODE_T GetConnectedDeviceName(string btAddress, string &nameString) { return m_PairingManager->GetConnectedDeviceName(btAddress, nameString); }
+    virtual ERROR_CODE_T GetConnectedDeviceName(string btAddress, string &nameString)
+    {
+        return m_PairingManager->GetConnectedDeviceName(btAddress, nameString);
+    }
 
     virtual ERROR_CODE_T ScanForBtDevices(list<shared_ptr<CBTEADetectedDevice> > &detectedDeviceList, INT8U timeoutSec)
     {
         return m_PairingManager->ScanForBtDevices(detectedDeviceList, ShouldScanForAllDevices(), timeoutSec);
     }
-    virtual ERROR_CODE_T AbortBtDeviceScan(void) { return m_PairingManager->AbortBtDeviceScan(); }
 
-    virtual ERROR_CODE_T PairDevice(string btAddress, string &linkIdOut) { return m_PairingManager->PairDevice(btAddress, linkIdOut); }
+    virtual ERROR_CODE_T AbortBtDeviceScan(void)
+    {
+        return m_PairingManager->AbortBtDeviceScan();
+    }
+
+    virtual ERROR_CODE_T PairDevice(string btAddress, string &linkIdOut)
+    {
+        return m_PairingManager->PairDevice(btAddress, linkIdOut);
+    }
     virtual ERROR_CODE_T UnpairAllDevices();
 
-    virtual ERROR_CODE_T OpenConnection(string btAddress, string &linkIdOut) { return m_PairingManager->OpenConnection(btAddress, linkIdOut); }
-    virtual ERROR_CODE_T CloseConnection(string linkId) { return m_PairingManager->CloseConnection(linkId); }
+    virtual ERROR_CODE_T OpenConnection(string btAddress, string &linkIdOut)
+    {
+        return m_PairingManager->OpenConnection(btAddress, linkIdOut);
+    }
+    virtual ERROR_CODE_T CloseConnection(string linkId)
+    {
+        return m_PairingManager->CloseConnection(linkId);
+    }
 
-    virtual BOOLEAN IsNewDeviceConnected(void) { return m_PairingManager->IsNewDeviceConnected(); }
-    virtual BOOLEAN IsDeviceConnected() { return m_PairingManager->IsDeviceConnected(); }
-    virtual BOOLEAN IsPairedWithDevice() { return m_PairingManager->IsPairedWithDevice(); }
+    virtual BOOLEAN IsNewDeviceConnected(void)
+    {
+        return m_PairingManager->IsNewDeviceConnected();
+    }
+    virtual BOOLEAN IsDeviceConnected()
+    {
+        return m_PairingManager->IsDeviceConnected();
+    }
+    virtual BOOLEAN IsPairedWithDevice()
+    {
+        return m_PairingManager->IsPairedWithDevice();
+    }
 
     Observable<BOOLEAN> BTConnectionChangeState;
-protected:
+
+  protected:
     shared_ptr<BTASerialDevice> m_pBTASerialDevice;
     shared_ptr<CBTAPairingManager> m_PairingManager;
 
@@ -111,14 +145,14 @@ protected:
     string m_LocalAddress;
     string m_PublicAddress;
 
-    bool isCommEnabled = false;
+    bool isCommEnabled;
     bool m_waitingForPreviousDeviceConnection;
 
     // Device that we're going to autoconnect to after power up
     string m_PairedDevice;
 
     INT8U m_PacketVerbosity;
-    string m_DebugID;
+    string m_DebugId;
 
     BTADeviceMode_t m_DeviceMode;
     bool m_deviceReadyForUse;
@@ -161,27 +195,27 @@ protected:
         UNIQUE_CONFIG_SETTINGS_BT_STATE,
     } UniqueConfigSettings_t;
 
-    virtual ERROR_CODE_T VerifyConfigSetting(UniqueConfigSettings_t setting, bool* optionWasSet = NULL);
-    virtual ERROR_CODE_T VerifyConfigSetting(string configSetting, UniqueConfigSettings_t setting, bool* optionWasSet = NULL);
-    virtual ERROR_CODE_T VerifyConfigSetting(string configSetting, string expectedResult, bool* optionWasSet = NULL);
+    virtual ERROR_CODE_T VerifyConfigSetting(UniqueConfigSettings_t setting, bool *optionWasSet = NULL);
+    virtual ERROR_CODE_T VerifyConfigSetting(string configSetting, UniqueConfigSettings_t setting, bool *optionWasSet = NULL);
+    virtual ERROR_CODE_T VerifyConfigSetting(string configSetting, string expectedResult, bool *optionWasSet = NULL);
 
     // Pure Virtual Methods
 
     // Each device needs to specify their acceptable baud rates. The first entry is always the default.
     // As we try to talk to each device, we'll go through the list of acceptable baud rates until we give up.
-    virtual BAUDRATE* GetBaudrateList(INT32U* length) = 0;
+    virtual vector<BAUDRATE> GetBaudrateList() = 0;
     virtual BAUDRATE GetDefaultBaudRate();
     virtual ERROR_CODE_T GetBaudrate(BAUDRATE &baudrate);
 
     // Gets the preferred string for the config setting.
     // Also checks if the config setting is implemented or not
-    virtual string GetUniqueConfigExpectedString(UniqueConfigSettings_t configOption, bool* notImplemented) = 0;
+    virtual string GetUniqueConfigExpectedString(UniqueConfigSettings_t configOption, bool *notImplemented) = 0;
 
     // Gets setting string for the config setting, which may change from device to device or Fw to Fw
-    virtual string GetUniqueConfigSettingString(UniqueConfigSettings_t configOption, bool* notImplemented) = 0;
+    virtual string GetUniqueConfigSettingString(UniqueConfigSettings_t configOption, bool *notImplemented) = 0;
 
     // Each device has its own version return. After this, we expect the m_BtFwVersion to be valid
-    virtual void ParseVersionStrings(const vector<string>& retStrings) = 0;
+    virtual void ParseVersionStrings(const vector<string> &retStrings) = 0;
 
     virtual ERROR_CODE_T SetDeviceCfgDigitalAudioMode();
     virtual ERROR_CODE_T SetDeviceCfgDigitalAudioParams();
@@ -224,7 +258,10 @@ protected:
 
     // See m_configWritePending
     virtual void SetConfigWritePending(bool pending);
-    virtual bool IsConfigWritePending() { return m_configWritePending; }
+    virtual bool IsConfigWritePending()
+    {
+        return m_configWritePending;
+    }
     virtual ERROR_CODE_T WriteConfigToFlash();
 
     //////////////////////////////////////////////////////////////////////////
@@ -239,4 +276,7 @@ protected:
     virtual void GotoOfflineState(void);
 
     virtual string DeviceModeToString(BTADeviceMode_t mode);
+
+    virtual void ChangeBluetoothConfigSetupState(int &state, int desiredState);
+    virtual string StateToString(int state);
 };

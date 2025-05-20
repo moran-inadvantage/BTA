@@ -1,9 +1,12 @@
 #include "BC127.h"
 
-void BC127::ParseVersionStrings(const vector<string>& retStrings)
+#include <string>
+
+void BC127::ParseVersionStrings(const vector<string> &retStrings)
 {
-    for (const auto& line : retStrings)
+    for (vector<string>::const_iterator it = retStrings.begin(); it != retStrings.end(); ++it)
     {
+        string line = *it;
         if (line.find("Melody Audio") != string::npos && line.find("V") != string::npos)
         {
             m_BtFwVersion.hardware = BTA_HW_BC127;
@@ -44,36 +47,32 @@ void BC127::ParseVersionStrings(const vector<string>& retStrings)
                 string addresses = line.substr(pos + 21);
                 size_t firstSpace = addresses.find(' ');
                 m_BluetoothAddress = (firstSpace != string::npos)
-                    ? addresses.substr(0, firstSpace)
-                    : addresses;
+                                         ? addresses.substr(0, firstSpace)
+                                         : addresses;
             }
         }
     }
 }
 
-BAUDRATE* BC127::GetBaudrateList(INT32U* length)
+vector<BAUDRATE> BC127::GetBaudrateList()
 {
-    static BAUDRATE preferredBaudRates[] = { 
-        BAUDRATE_9600,
-        BAUDRATE_115200,
-        BAUDRATE_57600,
-        BAUDRATE_38400,
-        BAUDRATE_19200,
-    };
-
-    *length = ARRAY_SIZE(preferredBaudRates);
-
-    return preferredBaudRates;
+    vector<BAUDRATE> rates;
+    rates.push_back(BAUDRATE_9600);
+    rates.push_back(BAUDRATE_115200);
+    rates.push_back(BAUDRATE_57600);
+    rates.push_back(BAUDRATE_38400);
+    rates.push_back(BAUDRATE_19200);
+    return rates;
 }
 
-string BC127::GetUniqueConfigExpectedString(UniqueConfigSettings_t configOption, bool* notImplemented)
+string BC127::GetUniqueConfigExpectedString(UniqueConfigSettings_t configOption, bool *notImplemented)
 {
     // By default, assume it's implemented. It's the exception that it is not.
     *notImplemented = false;
 
-    switch(configOption)
+    switch (configOption)
     {
-        case UNIQUE_CONFIG_SETTING_DIGITAL_AUDIO_PARAMS: 
+        case UNIQUE_CONFIG_SETTING_DIGITAL_AUDIO_PARAMS:
         {
             if (m_BtFwVersion.BC127FwRev == BC127_FW_REV_6_1_2)
             {
@@ -81,14 +80,12 @@ string BC127::GetUniqueConfigExpectedString(UniqueConfigSettings_t configOption,
             }
 
             return "0 48000 64 140300 OFF";
-            break;
         }
         case UNIQUE_CONFIG_SETTING_AUTO_CONNECTION:
         {
             // 0 -  No Auto Connect, 1 - Auto Connect to all devices in paired device list
             // 2 - Auto-connect to specific device in the REMOTE_ADDR config setting
             return "0";
-            break;
         }
         case UNIQUE_CONFIG_SETTING_BT_VOLUME:
         {
@@ -105,7 +102,6 @@ string BC127::GetUniqueConfigExpectedString(UniqueConfigSettings_t configOption,
                     // [3] - Volume Scaling Method <0 - HW, 1 - DSP>
                     return "A 70 10 1";
             }
-            break;
         }
         case UNIQUE_CONFIG_SETTTING_CODEC:
         {
@@ -115,18 +111,15 @@ string BC127::GetUniqueConfigExpectedString(UniqueConfigSettings_t configOption,
             // Bit 3 - AptX HD <Not Supported on our HW>
             // OFF - Disabled, ON - Enabled
             return "7 OFF";
-            break;
         }
         case UNIQUE_CONFIG_SETTING_DEVICE_ID:
         {
             return "0001 0002 0003 0004 0005 0006 0007 0008";
-            break;
         }
         case UNIQUE_CONFIG_SETTING_LED_ENABLE:
         {
             // I wonder what this does?
             return "ON";
-            break;
         }
         case UNIQUE_CONFIG_SETTING_GPIO_CONFIG:
         {
@@ -134,9 +127,8 @@ string BC127::GetUniqueConfigExpectedString(UniqueConfigSettings_t configOption,
             {
                 return "ON 0 254";
             }
-            
+
             return "ON 0 254 0";
-            break;
         }
         case UNIQUE_CONFIG_SETTING_SHORT_NAME:
         {
@@ -163,12 +155,10 @@ string BC127::GetUniqueConfigExpectedString(UniqueConfigSettings_t configOption,
             }
 
             return "IA " + string(&m_PublicAddress[indexIntoPublicAddress]);
-            break;
         }
         case UNIQUE_CONFIG_SETTING_VREG_ROLE:
         {
             return "0";
-            break;
         }
         case UNIQUE_CONFIG_SETTING_PROFILES:
         {
@@ -197,18 +187,15 @@ string BC127::GetUniqueConfigExpectedString(UniqueConfigSettings_t configOption,
                    maxHidHost + " " +
                    maxMapConnections + " " +
                    maxIapConnections;
-
-            break;
         }
         case UNIQUE_CONFIG_SETTING_UI_CONFIG:
         default:
             *notImplemented = true;
             return "";
-            break;
     }
 }
 
-string BC127::GetUniqueConfigSettingString(UniqueConfigSettings_t configOption, bool* notImplemented)
+string BC127::GetUniqueConfigSettingString(UniqueConfigSettings_t configOption, bool *notImplemented)
 {
     if (notImplemented)
     {
@@ -224,22 +211,18 @@ string BC127::GetUniqueConfigSettingString(UniqueConfigSettings_t configOption, 
                 case BC127_FW_REV_6_1_2:
                 case BC127_FW_REV_6_1_5:
                     return "DISCOVERABLE";
-                    break;
                 case BC127_FW_REV_7_0:
                 case BC127_FW_REV_7_1:
                 case BC127_FW_REV_7_2:
                 case BC127_FW_REV_7_3:
                 default:
                     return "BT_STATE_CONFIG";
-                    break;
             }
-            break;
         }
         default:
         {
             *notImplemented = true;
             return "";
-            break;
         }
     }
 }

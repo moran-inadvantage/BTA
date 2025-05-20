@@ -1,9 +1,9 @@
 #include <memory>
 
-#include "types.h"
 #include "BTADeviceDriver.h"
 #include "BTASerialDevice.h"
 #include "ExtIO.h"
+#include "types.h"
 
 IBTADeviceDriver::IBTADeviceDriver()
 {
@@ -15,7 +15,7 @@ void IBTADeviceDriver::SetDeviceReadyForUse(bool isReady)
 {
     if (isReady != m_deviceReadyForUse)
     {
-        DebugPrintf(DEBUG_TRACE_INFO, DEBUG_TRACE_INFO, m_DebugID, "Device ready for use: %s\n", isReady ? "true" : "false");
+        DebugPrintf(DEBUG_TRACE, DEBUG_TRACE, m_DebugId.c_str(), "Device ready for use: %s\n", isReady ? "true" : "false");
         m_deviceReadyForUse = isReady;
     }
 }
@@ -31,8 +31,7 @@ ERROR_CODE_T IBTADeviceDriver::SetAndOpenBtaSerialDevice(shared_ptr<BTASerialDev
 
     BAUDRATE defaultBaudRate = GetDefaultBaudRate();
 
-    ERROR_CODE_T status = pBTASerialDevice->SetBaudrate(defaultBaudRate);
-    RETURN_EC_IF_FAILED(status);
+    RETURN_IF_FAILED(pBTASerialDevice->SetBaudrate(defaultBaudRate));
 
     m_pBTASerialDevice = pBTASerialDevice;
 
@@ -42,8 +41,7 @@ ERROR_CODE_T IBTADeviceDriver::SetAndOpenBtaSerialDevice(shared_ptr<BTASerialDev
 
     m_pBTASerialDevice->OnOpenNotificationReceived.registerObserver<CBTAPairingManager>(
         m_PairingManager,
-        &CBTAPairingManager::OnOpenNotificationReceived
-    );
+        &CBTAPairingManager::OnOpenNotificationReceived);
 
     return STATUS_SUCCESS;
 }
@@ -52,15 +50,15 @@ ERROR_CODE_T IBTADeviceDriver::SetDeviceName(string deviceName)
 {
     if (deviceName.compare(m_DeviceName) == 0)
     {
-        DebugPrintf(DEBUG_TRACE_INFO, DEBUG_TRACE_INFO, m_DebugID, "Changing device name for %s to %s\n", m_DeviceName.c_str(), deviceName.c_str());
+        DebugPrintf(DEBUG_TRACE, DEBUG_TRACE, m_DebugId.c_str(), "Changing device name for %s to %s\n", m_DeviceName.c_str(), deviceName.c_str());
     }
-    
+
     return STATUS_SUCCESS;
 }
 
-ERROR_CODE_T IBTADeviceDriver::GetDeviceVersion(shared_ptr<CBTAVersionInfo_t>& version)
+ERROR_CODE_T IBTADeviceDriver::GetDeviceVersion(shared_ptr<CBTAVersionInfo_t> &version)
 {
-    if (m_BtFwVersion.IsValid()) 
+    if (m_BtFwVersion.IsValid())
     {
         m_BtFwVersion.CopyInto(version);
         return STATUS_SUCCESS;
@@ -76,7 +74,7 @@ ERROR_CODE_T IBTADeviceDriver::GetDeviceVersion(shared_ptr<CBTAVersionInfo_t>& v
 
     ParseVersionStrings(retStrings);
 
-    RETURN_EC_IF_TRUE(ERROR_FAILED,!m_BtFwVersion.IsValid());
+    RETURN_EC_IF_TRUE(ERROR_FAILED, !m_BtFwVersion.IsValid());
 
     m_BtFwVersion.CopyInto(version);
 
@@ -87,12 +85,18 @@ ERROR_CODE_T IBTADeviceDriver::GetDeviceVersion(shared_ptr<CBTAVersionInfo_t>& v
 
 ERROR_CODE_T IBTADeviceDriver::ResetAndEstablishSerialConnection(shared_ptr<BTASerialDevice> pBtaSerialDevice)
 {
-    shared_ptr<CBTAVersionInfo_t> versionInfo = make_shared<CBTAVersionInfo_t>();
-
     if (pBtaSerialDevice != NULL)
     {
-        RETURN_EC_IF_FAILED(SetAndOpenBtaSerialDevice(pBtaSerialDevice));
+        RETURN_IF_FAILED(SetAndOpenBtaSerialDevice(pBtaSerialDevice));
     }
+
+    return ResetAndEstablishSerialConnection();
+}
+
+ERROR_CODE_T IBTADeviceDriver::ResetAndEstablishSerialConnection()
+{
+    shared_ptr<CBTAVersionInfo_t> versionInfo = make_shared<CBTAVersionInfo_t>();
+
     // Try various baud rates until we find the correct one.
     // Even if we find the right one, may not be our device
     do
@@ -168,7 +172,6 @@ ERROR_CODE_T IBTADeviceDriver::SendPlayCommand(string linkId)
     return STATUS_SUCCESS;
 }
 
-
 ERROR_CODE_T IBTADeviceDriver::WatchdogPet(bool flushBuffer)
 {
     RETURN_EC_IF_NULL(ERROR_FAILED, m_pBTASerialDevice);
@@ -180,21 +183,21 @@ ERROR_CODE_T IBTADeviceDriver::WatchdogPet(bool flushBuffer)
 
 BAUDRATE IBTADeviceDriver::GetDefaultBaudRate()
 {
-    INT32U baudRateListLength;
-    BAUDRATE* preferredBaudRates = GetBaudrateList(&baudRateListLength);
-    return (baudRateListLength != 0) ? preferredBaudRates[0] : BAUDRATE_9600;
+    vector<BAUDRATE> preferredBaudRates = GetBaudrateList();
+    return (preferredBaudRates.size() != 0) ? preferredBaudRates[0] : BAUDRATE_9600;
 }
 
 ERROR_CODE_T IBTADeviceDriver::TryNextBaudrate()
 {
     RETURN_EC_IF_NULL(ERROR_FAILED, m_pBTASerialDevice);
 
-    INT32U baudRateListLength;
-    BAUDRATE* preferredBaudRates = GetBaudrateList(&baudRateListLength);
+    vector<BAUDRATE> preferredBaudRates = GetBaudrateList();
+    INT32U baudRateListLength = preferredBaudRates.size();
 
-    BAUDRATE baudrate;
-    ERROR_CODE_T status = m_pBTASerialDevice->GetBaudrate(baudrate);
-    RETURN_EC_IF_FAILED(status);
+    BAUDRATE baudrate = BAUDRATE_UNKNOWN;
+    // Ignores a false warning of unreferenced variable?
+    (void)baudrate;
+    RETURN_IF_FAILED(m_pBTASerialDevice->GetBaudrate(baudrate));
 
     for (int i = 0; i < baudRateListLength; i++)
     {
@@ -202,7 +205,7 @@ ERROR_CODE_T IBTADeviceDriver::TryNextBaudrate()
         {
             if (i + 1 < baudRateListLength)
             {
-                RETURN_EC_IF_FAILED(m_pBTASerialDevice->SetBaudrate(preferredBaudRates[i + 1]));
+                RETURN_IF_FAILED(m_pBTASerialDevice->SetBaudrate(preferredBaudRates[i + 1]));
                 return STATUS_SUCCESS;
             }
         }
@@ -223,7 +226,7 @@ void IBTADeviceDriver::SetConfigWritePending(bool pending)
 {
     if (pending != m_configWritePending)
     {
-        DebugPrintf(DEBUG_TRACE_INFO, DEBUG_TRACE_INFO, m_DebugID, "Config write pending: %s\n", pending ? "true" : "false");
+        DebugPrintf(DEBUG_TRACE, DEBUG_TRACE, m_DebugId.c_str(), "Config write pending: %s\n", pending ? "true" : "false");
         m_configWritePending = pending;
     }
 }
@@ -232,9 +235,12 @@ string IBTADeviceDriver::DeviceModeToString(BTADeviceMode_t mode)
 {
     switch (mode)
     {
-        case BTA_DEVICE_MODE_INPUT: return "Input";
-        case BTA_DEVICE_MODE_OUTPUT: return "Output";
-        default: return "Unknown";
+        case BTA_DEVICE_MODE_INPUT:
+            return "Input";
+        case BTA_DEVICE_MODE_OUTPUT:
+            return "Output";
+        default:
+            return "Unknown";
     }
 }
 
@@ -242,10 +248,9 @@ void IBTADeviceDriver::SetDeviceMode(BTADeviceMode_t mode)
 {
     if (mode != m_DeviceMode)
     {
-        DebugPrintf(DEBUG_TRACE_INFO, DEBUG_TRACE_INFO, m_DebugID, "Switching device mode from %s to %s\n",
-            DeviceModeToString(m_DeviceMode).c_str(),
-            DeviceModeToString(mode).c_str()
-        );
+        DebugPrintf(DEBUG_TRACE, DEBUG_TRACE, m_DebugId.c_str(), "Switching device mode from %s to %s\n",
+                    DeviceModeToString(m_DeviceMode).c_str(),
+                    DeviceModeToString(mode).c_str());
         m_DeviceMode = mode;
         m_PairingManager->SetDeviceMode(m_DeviceMode);
     }
@@ -255,7 +260,7 @@ void IBTADeviceDriver::SetFlagUnpairAllDevices(bool unpair)
 {
     if (m_needToUnpairAllDevices != unpair)
     {
-        DebugPrintf(DEBUG_TRACE_INFO, DEBUG_TRACE_INFO, m_DebugID, "Unpair all devices: %s\n", unpair ? "true" : "false");
+        DebugPrintf(DEBUG_TRACE, DEBUG_TRACE, m_DebugId.c_str(), "Unpair all devices: %s\n", unpair ? "true" : "false");
         m_needToUnpairAllDevices = unpair;
     }
 }
@@ -326,182 +331,202 @@ typedef enum
     BT_STATE_NOT_USED,
 } BluetoothConfigSetupStates_t;
 
-static string StateToString(BluetoothConfigSetupStates_t state)
+string IBTADeviceDriver::StateToString(int state)
 {
-    switch (state) {
-        case BT_CONFIG_GET_VERSION: return "BT_CONFIG_GET_VERSION";
-        case BT_CONFIG_GET_LOCAL_ADDR: return "BT_CONFIG_GET_LOCAL_ADDR";
-        case BT_CONFIG_SET_AUDIO_MODE: return "BT_CONFIG_SET_AUDIO_MODE";
-        case BT_CONFIG_SET_DIGITAL_AUDIO_PARAMS: return "BT_CONFIG_SET_DIGITAL_AUDIO_PARAMS";
-        case BT_CONFIG_SET_AUTOCONN: return "BT_CONFIG_SET_AUTOCONN";
-        case BT_CONFIG_SET_BT_VOLUME: return "BT_CONFIG_SET_BT_VOLUME";
-        case BT_CONFIG_SET_COD: return "BT_CONFIG_SET_COD";
-        case BT_CONFIG_SET_CODEC: return "BT_CONFIG_SET_CODEC";
-        case BT_CONFIG_SET_DEVICE_ID: return "BT_CONFIG_SET_DEVICE_ID";
-        case BT_CONFIG_SET_LED_ENABLE: return "BT_CONFIG_SET_LED_ENABLE";
-        case BT_CONFIG_SET_GPIO_CONFIG: return "BT_CONFIG_SET_GPIO_CONFIG";
-        case BT_CONFIG_SET_UI_CONFIG: return "BT_CONFIG_SET_UI_CONFIG";
-        case BT_CONFIG_SET_LONG_NAME: return "BT_CONFIG_SET_LONG_NAME";
-        case BT_CONFIG_SET_SHORT_NAME: return "BT_CONFIG_SET_SHORT_NAME";
-        case BT_CONFIG_GET_PAIRED_DEVICE: return "BT_CONFIG_GET_PAIRED_DEVICE";
-        case BT_CONFIG_SET_PROFILES: return "BT_CONFIG_SET_PROFILES";
-        case BT_CONFIG_SET_VREG_ROLE: return "BT_CONFIG_SET_VREG_ROLE";
-        case BT_CONFIG_SET_SSP_CAPS: return "BT_CONFIG_SET_SSP_CAPS";
-        case BT_CONFIG_SET_BT_STATE: return "BT_CONFIG_SET_BT_STATE";
-        case BT_CONFIG_WRITE_CFG: return "BT_CONFIG_WRITE_CFG";
-        case BT_CONFIG_RESTART: return "BT_CONFIG_RESTART";
-        case BT_CONFIG_DONE: return "BT_CONFIG_DONE";
+    switch (static_cast<BluetoothConfigSetupStates_t>(state))
+    {
+        case BT_CONFIG_GET_VERSION:
+            return "BT_CONFIG_GET_VERSION";
+        case BT_CONFIG_GET_LOCAL_ADDR:
+            return "BT_CONFIG_GET_LOCAL_ADDR";
+        case BT_CONFIG_SET_AUDIO_MODE:
+            return "BT_CONFIG_SET_AUDIO_MODE";
+        case BT_CONFIG_SET_DIGITAL_AUDIO_PARAMS:
+            return "BT_CONFIG_SET_DIGITAL_AUDIO_PARAMS";
+        case BT_CONFIG_SET_AUTOCONN:
+            return "BT_CONFIG_SET_AUTOCONN";
+        case BT_CONFIG_SET_BT_VOLUME:
+            return "BT_CONFIG_SET_BT_VOLUME";
+        case BT_CONFIG_SET_COD:
+            return "BT_CONFIG_SET_COD";
+        case BT_CONFIG_SET_CODEC:
+            return "BT_CONFIG_SET_CODEC";
+        case BT_CONFIG_SET_DEVICE_ID:
+            return "BT_CONFIG_SET_DEVICE_ID";
+        case BT_CONFIG_SET_LED_ENABLE:
+            return "BT_CONFIG_SET_LED_ENABLE";
+        case BT_CONFIG_SET_GPIO_CONFIG:
+            return "BT_CONFIG_SET_GPIO_CONFIG";
+        case BT_CONFIG_SET_UI_CONFIG:
+            return "BT_CONFIG_SET_UI_CONFIG";
+        case BT_CONFIG_SET_PROFILES:
+            return "BT_CONFIG_SET_PROFILES";
+        case BT_CONFIG_SET_VREG_ROLE:
+            return "BT_CONFIG_SET_VREG_ROLE";
+        case BT_CONFIG_SET_SSP_CAPS:
+            return "BT_CONFIG_SET_SSP_CAPS";
+        case BT_CONFIG_SET_BT_STATE:
+            return "BT_CONFIG_SET_BT_STATE";
+        case BT_CONFIG_SET_LONG_NAME:
+            return "BT_CONFIG_SET_LONG_NAME";
+        case BT_CONFIG_SET_SHORT_NAME:
+            return "BT_CONFIG_SET_SHORT_NAME";
+        case BT_CONFIG_GET_PAIRED_DEVICE:
+            return "BT_CONFIG_GET_PAIRED_DEVICE";
+        case BT_CONFIG_WRITE_CFG:
+            return "BT_CONFIG_WRITE_CFG";
+        case BT_CONFIG_RESTART:
+            return "BT_CONFIG_RESTART";
+        case BT_CONFIG_DONE:
+            return "BT_CONFIG_DONE";
         default:
-            break;
+            return "UNKNOWN_STATE";
     }
-    return "STATE NOT FOUND";
 }
 
-static void changeBluetoothConfigSetupState(
-    BluetoothConfigSetupStates_t& state,
-    BluetoothConfigSetupStates_t desiredState = BT_STATE_NOT_USED
-)
+void IBTADeviceDriver::ChangeBluetoothConfigSetupState(int &state, int desiredState = BT_STATE_NOT_USED)
 {
-    BluetoothConfigSetupStates_t newState = (desiredState == BT_STATE_NOT_USED) ?
-        static_cast<BluetoothConfigSetupStates_t>(static_cast<int>(state) + 1) : 
-        desiredState;
+    BluetoothConfigSetupStates_t newState = (desiredState == -1) ? static_cast<BluetoothConfigSetupStates_t>(state + 1) : static_cast<BluetoothConfigSetupStates_t>(desiredState);
 
-    DebugPrintf(DEBUG_TRACE_DEBUG, DEBUG_TRACE_DEBUG, m_debugId, "Moving from %s to %s\n", StateToString(state).c_str(), StateToString(newState).c_str());
+    DebugPrintf(DEBUG_TRACE_MESSAGE, DEBUG_TRACE_MESSAGE, m_DebugId.c_str(),
+                "Moving from %s to %s\n", StateToString(state).c_str(), StateToString(newState).c_str());
 
     state = newState;
 }
 
 ERROR_CODE_T IBTADeviceDriver::InitializeDeviceConfiguration()
 {
-    BluetoothConfigSetupStates_t state = BT_CONFIG_GET_VERSION;
+    int state = BT_CONFIG_GET_VERSION;
 
     while (state != BT_CONFIG_DONE)
     {
-        switch (state) {
+        switch (state)
+        {
             case BT_CONFIG_GET_VERSION:
             {
                 shared_ptr<CBTAVersionInfo_t> versionInfo = make_shared<CBTAVersionInfo_t>();
-                RETURN_EC_IF_FAILED(GetDeviceVersion(versionInfo));
-                changeBluetoothConfigSetupState(state);
+                RETURN_IF_FAILED(GetDeviceVersion(versionInfo));
+                ChangeBluetoothConfigSetupState(state);
                 break;
             }
             case BT_CONFIG_GET_LOCAL_ADDR:
             {
                 RETURN_IF_FAILED(GetDeviceCfgLocalAddress());
-                changeBluetoothConfigSetupState(state);
+                ChangeBluetoothConfigSetupState(state);
                 break;
             }
             case BT_CONFIG_SET_AUDIO_MODE:
             {
                 RETURN_IF_FAILED(SetDeviceCfgDigitalAudioMode());
-                changeBluetoothConfigSetupState(state);
+                ChangeBluetoothConfigSetupState(state);
                 break;
             }
             case BT_CONFIG_SET_DIGITAL_AUDIO_PARAMS:
             {
                 RETURN_IF_FAILED(SetDeviceCfgDigitalAudioParams());
-                changeBluetoothConfigSetupState(state);
+                ChangeBluetoothConfigSetupState(state);
                 break;
             }
             case BT_CONFIG_SET_AUTOCONN:
             {
-                RETURN_EC_IF_FAILED(SetDeviceCfgAutoConnect());
-                changeBluetoothConfigSetupState(state);
+                RETURN_IF_FAILED(SetDeviceCfgAutoConnect());
+                ChangeBluetoothConfigSetupState(state);
                 break;
             }
             case BT_CONFIG_SET_BT_VOLUME:
             {
-                RETURN_EC_IF_FAILED(SetDeviceCfgVolume());
-                changeBluetoothConfigSetupState(state);
+                RETURN_IF_FAILED(SetDeviceCfgVolume());
+                ChangeBluetoothConfigSetupState(state);
                 break;
             }
             case BT_CONFIG_SET_COD:
             {
-                RETURN_EC_IF_FAILED(SetDeviceCfgCOD());
-                changeBluetoothConfigSetupState(state);
+                RETURN_IF_FAILED(SetDeviceCfgCOD());
+                ChangeBluetoothConfigSetupState(state);
                 break;
             }
             case BT_CONFIG_SET_CODEC:
             {
-                RETURN_EC_IF_FAILED(SetDeviceCfgCodecs());
-                changeBluetoothConfigSetupState(state);
+                RETURN_IF_FAILED(SetDeviceCfgCodecs());
+                ChangeBluetoothConfigSetupState(state);
                 break;
             }
             case BT_CONFIG_SET_DEVICE_ID:
             {
-                RETURN_EC_IF_FAILED(SetDeviceCfgDeviceId());
-                changeBluetoothConfigSetupState(state);
+                RETURN_IF_FAILED(SetDeviceCfgDeviceId());
+                ChangeBluetoothConfigSetupState(state);
                 break;
             }
             case BT_CONFIG_SET_LED_ENABLE:
             {
-                RETURN_EC_IF_FAILED(SetDeviceCfgLedEnable());
-                changeBluetoothConfigSetupState(state);
+                RETURN_IF_FAILED(SetDeviceCfgLedEnable());
+                ChangeBluetoothConfigSetupState(state);
                 break;
             }
             case BT_CONFIG_SET_GPIO_CONFIG:
             {
-                RETURN_EC_IF_FAILED(SetDeviceCfgGpioConfig());
-                changeBluetoothConfigSetupState(state);
+                RETURN_IF_FAILED(SetDeviceCfgGpioConfig());
+                ChangeBluetoothConfigSetupState(state);
                 break;
             }
             case BT_CONFIG_SET_UI_CONFIG:
             {
-                RETURN_EC_IF_FAILED(SetDeviceCfgUiConfig());
-                changeBluetoothConfigSetupState(state);
+                RETURN_IF_FAILED(SetDeviceCfgUiConfig());
+                ChangeBluetoothConfigSetupState(state);
                 break;
             }
             case BT_CONFIG_SET_PROFILES:
             {
-                RETURN_EC_IF_FAILED(SetDeviceCfgProfiles());
-                changeBluetoothConfigSetupState(state);
+                RETURN_IF_FAILED(SetDeviceCfgProfiles());
+                ChangeBluetoothConfigSetupState(state);
                 break;
             }
             case BT_CONFIG_SET_VREG_ROLE:
             {
-                RETURN_EC_IF_FAILED(SetDeviceCfgVregRole());
-                changeBluetoothConfigSetupState(state);
+                RETURN_IF_FAILED(SetDeviceCfgVregRole());
+                ChangeBluetoothConfigSetupState(state);
                 break;
             }
             case BT_CONFIG_SET_SSP_CAPS:
             {
-                RETURN_EC_IF_FAILED(SetDeviceCfgSspCaps());
-                changeBluetoothConfigSetupState(state);
+                RETURN_IF_FAILED(SetDeviceCfgSspCaps());
+                ChangeBluetoothConfigSetupState(state);
                 break;
             }
             case BT_CONFIG_SET_BT_STATE:
             {
-                RETURN_EC_IF_FAILED(SetDeviceCfgBluetoothState());
-                changeBluetoothConfigSetupState(state);
+                RETURN_IF_FAILED(SetDeviceCfgBluetoothState());
+                ChangeBluetoothConfigSetupState(state);
                 break;
             }
             case BT_CONFIG_SET_LONG_NAME:
             {
-                RETURN_EC_IF_FAILED(SetDeviceCfgLongName());
-                changeBluetoothConfigSetupState(state);
+                RETURN_IF_FAILED(SetDeviceCfgLongName());
+                ChangeBluetoothConfigSetupState(state);
                 break;
             }
             case BT_CONFIG_SET_SHORT_NAME:
             {
-                RETURN_EC_IF_FAILED(SetDeviceCfgShortName());
-                changeBluetoothConfigSetupState(state);
+                RETURN_IF_FAILED(SetDeviceCfgShortName());
+                ChangeBluetoothConfigSetupState(state);
                 break;
             }
             case BT_CONFIG_GET_PAIRED_DEVICE:
             {
-                RETURN_EC_IF_FAILED(GetDeviceCfgRemoteAddress(m_PairedDevice));
-                changeBluetoothConfigSetupState(state);
+                RETURN_IF_FAILED(GetDeviceCfgRemoteAddress(m_PairedDevice));
+                ChangeBluetoothConfigSetupState(state);
                 break;
             }
             case BT_CONFIG_WRITE_CFG:
             {
                 if (IsConfigWritePending())
                 {
-                    RETURN_EC_IF_FAILED(WriteConfigToFlash());
-                    changeBluetoothConfigSetupState(state);
-                } else
+                    RETURN_IF_FAILED(WriteConfigToFlash());
+                    ChangeBluetoothConfigSetupState(state);
+                }
+                else
                 {
-                    changeBluetoothConfigSetupState(state, BT_CONFIG_DONE);
+                    ChangeBluetoothConfigSetupState(state, BT_CONFIG_DONE);
                 }
 
                 break;
@@ -509,7 +534,7 @@ ERROR_CODE_T IBTADeviceDriver::InitializeDeviceConfiguration()
             case BT_CONFIG_RESTART:
             {
                 m_waitingForPreviousDeviceConnection = true;
-                changeBluetoothConfigSetupState(state, BT_CONFIG_GET_VERSION);
+                ChangeBluetoothConfigSetupState(state, BT_CONFIG_GET_VERSION);
                 break;
             }
             default:
@@ -525,14 +550,14 @@ ERROR_CODE_T IBTADeviceDriver::InitializeDeviceConfiguration()
     return STATUS_SUCCESS;
 }
 
-ERROR_CODE_T IBTADeviceDriver::VerifyConfigSetting(UniqueConfigSettings_t setting, bool* optionWasSet)
+ERROR_CODE_T IBTADeviceDriver::VerifyConfigSetting(UniqueConfigSettings_t setting, bool *optionWasSet)
 {
     bool configNotImplemented = false;
     string settingString = GetUniqueConfigSettingString(setting, &configNotImplemented);
     return VerifyConfigSetting(settingString, setting, optionWasSet);
 }
 
-ERROR_CODE_T IBTADeviceDriver::VerifyConfigSetting(string configSetting, UniqueConfigSettings_t setting, bool* optionWasSet)
+ERROR_CODE_T IBTADeviceDriver::VerifyConfigSetting(string configSetting, UniqueConfigSettings_t setting, bool *optionWasSet)
 {
     bool configNotImplemented = false;
 
@@ -554,7 +579,7 @@ ERROR_CODE_T IBTADeviceDriver::VerifyConfigSetting(string configSetting, UniqueC
     return VerifyConfigSetting(configSetting, expectedString, optionWasSet);
 }
 
-ERROR_CODE_T IBTADeviceDriver::VerifyConfigSetting(string configSetting, string expectedResult, bool* optionWasSet)
+ERROR_CODE_T IBTADeviceDriver::VerifyConfigSetting(string configSetting, string expectedResult, bool *optionWasSet)
 {
     string retString;
     // In case we return early, or we don't set the option
@@ -567,7 +592,7 @@ ERROR_CODE_T IBTADeviceDriver::VerifyConfigSetting(string configSetting, string 
     RETURN_EC_IF_NULL(ERROR_FAILED, m_pBTASerialDevice);
 
     RETURN_IF_FAILED(m_pBTASerialDevice->GetCfgValue(retString, configSetting));
-    
+
     if (retString.find(expectedResult) == string::npos)
     {
         m_pBTASerialDevice->SetCfgValue(configSetting, expectedResult);
@@ -583,7 +608,6 @@ ERROR_CODE_T IBTADeviceDriver::VerifyConfigSetting(string configSetting, string 
 
     return (retString.find(expectedResult) != string::npos) ? STATUS_SUCCESS : ERROR_FAILED;
 }
-
 
 ERROR_CODE_T IBTADeviceDriver::SetDeviceCfgDigitalAudioMode()
 {
@@ -658,7 +682,7 @@ ERROR_CODE_T IBTADeviceDriver::SetDeviceCfgProfiles()
 
     if (optionWasSet)
     {
-        DebugPrintf(DEBUG_TRACE_INFO, DEBUG_TRACE_INFO, m_DebugID, "Device profiles changed. Flagging to unpair all devices");
+        DebugPrintf(DEBUG_TRACE, DEBUG_TRACE, m_DebugId.c_str(), "Device profiles changed. Flagging to unpair all devices");
         SetFlagUnpairAllDevices(true);
     }
 
@@ -741,10 +765,10 @@ ERROR_CODE_T IBTADeviceDriver::MonitorStatus(void)
             string currentAddress = m_PairingManager->GetCurrentConnectedDeviceAddress();
             if (FAILED(m_PairingManager->GetConnectedDeviceName(currentAddress, deviceName)))
             {
-                DebugPrintf(DEBUG_TRACE_ERROR, DEBUG_TRACE_ERROR, m_DebugID, "Failed to get device name for %s\n", currentAddress.c_str());
+                DebugPrintf(DEBUG_NORMAL_ERROR, DEBUG_NORMAL_ERROR, m_DebugId.c_str(), "Failed to get device name for %s\n", currentAddress.c_str());
                 return ERROR_FAILED;
             }
- 
+
             m_PairingManager->SetLinkedName(deviceName);
             m_PairingManager->SetPairedDeviceName(deviceName);
 
@@ -755,7 +779,6 @@ ERROR_CODE_T IBTADeviceDriver::MonitorStatus(void)
             {
                 pDevice->m_btDeviceName = deviceName;
             }
-      
         }
 
         NotifyConnection();
@@ -779,7 +802,7 @@ ERROR_CODE_T IBTADeviceDriver::MonitorInputStatus(vector<string> statusStrings)
     vector<string>::iterator it;
     for (it = statusStrings.begin(); it != statusStrings.end(); it++)
     {
-        DebugPrintf(m_PacketVerbosity, DEBUG_NO_LOGGING, m_TaskID, "Processing: %s", it->c_str());
+        DebugPrintf(m_PacketVerbosity, DEBUG_NO_LOGGING, m_DebugId.c_str(), "Processing: %s", it->c_str());
         if (it->find("LINK") != string::npos)
         {
             // This is connection information.
@@ -809,7 +832,7 @@ ERROR_CODE_T IBTADeviceDriver::MonitorInputStatus(vector<string> statusStrings)
 
                         m_PairingManager->SetCurrentConnectedDevice(tempBtAddr, tempBtLinkId);
                         m_waitingForPreviousDeviceConnection = false;
-                        
+
                         SetConfigWritePending(true);
                         newLinkConnected = true;
                     }
@@ -925,7 +948,7 @@ ERROR_CODE_T IBTADeviceDriver::MonitorOutputStatus(vector<string> statusStrings)
             {
                 // Sometimes the module hangs in the opening state and won't even listen to a reset command.
                 // If this happens, we need to reset everything to get it back.
-                DebugPrintf(DEBUG_TRACE_MESSAGE, DEBUG_NO_LOGGING, m_TaskID, "Performing full reset");
+                DebugPrintf(DEBUG_TRACE_MESSAGE, DEBUG_NO_LOGGING, m_DebugId.c_str(), "Performing full reset");
                 GotoOfflineState();
             }
 
@@ -940,7 +963,7 @@ ERROR_CODE_T IBTADeviceDriver::MonitorOutputStatus(vector<string> statusStrings)
     return STATUS_SUCCESS;
 }
 
-void IBTADeviceDriver::GotoOfflineState(void)
+void IBTADeviceDriver::GotoOfflineState()
 {
     m_BtFwVersion.Clear();
     m_PairedDevice.clear();

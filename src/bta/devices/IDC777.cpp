@@ -1,9 +1,11 @@
+
 #include "IDC777.h"
 
-void IDC777::ParseVersionStrings(const vector<string>& retStrings)
+void IDC777::ParseVersionStrings(const vector<string> &retStrings)
 {
-    for (const auto& line : retStrings)
+    for (vector<string>::const_iterator it = retStrings.begin(); it != retStrings.end(); ++it)
     {
+        string line = *it;
         if (line.find("IDC777") != string::npos && line.find("V") != string::npos)
         {
             m_BtFwVersion.hardware = BTA_HW_IDC777;
@@ -11,7 +13,7 @@ void IDC777::ParseVersionStrings(const vector<string>& retStrings)
 
             // Extract version numbers after 'V'
             size_t vPos = line.find("V");
-            if (vPos != string::npos) 
+            if (vPos != string::npos)
             {
                 continue;
             }
@@ -28,28 +30,24 @@ void IDC777::ParseVersionStrings(const vector<string>& retStrings)
             m_BtFwVersion.major = static_cast<INT8U>(stoi(versionPart.substr(0, dot1)));
             m_BtFwVersion.minor = static_cast<INT8U>(stoi(versionPart.substr(dot1 + 1, dot2 - dot1 - 1)));
             m_BtFwVersion.patch = static_cast<INT8U>(stoi(versionPart.substr(dot2 + 1)));
-
         }
         // make sure it starts with "Build:"
         else if (line.find("Build:") == 0)
-        { 
-            m_BtFwVersion.buildNumber = (line.length() > 7) ? line.substr(7) : line; 
-        } else if (line.find("Bluetooth address") != string::npos)
+        {
+            m_BtFwVersion.buildNumber = (line.length() > 7) ? line.substr(7) : line;
+        }
+        else if (line.find("Bluetooth address") != string::npos)
         {
             m_BluetoothAddress = line.substr(line.find("Bluetooth address") + 18);
         }
     }
 }
 
-BAUDRATE* IDC777::GetBaudrateList(INT32U* length)
+vector<BAUDRATE> IDC777::GetBaudrateList()
 {
-    static BAUDRATE preferredBaudRates[] =
-    {
-        BAUDRATE_115200,
-    };
-
-    *length = ARRAY_SIZE(preferredBaudRates);
-    return preferredBaudRates;
+    vector<BAUDRATE> rates;
+    rates.push_back(BAUDRATE_115200);
+    return rates;
 }
 
 string IDC777::GetExpectedDigitalAudioParamsString()
@@ -93,47 +91,39 @@ string IDC777::GetExpectedDigitalAudioParamsString()
     string rxStartSample = "00";
     string param3 = audioAttenEnable + cropEnable + txStartSample + rxStartSample;
 
-    return "" + format + " " \
-              + rate   + " " \
-              + param1 + " " \
-              + param2 + " " \
-              + param3;
+    return "" + format + " " + rate + " " + param1 + " " + param2 + " " + param3;
 }
 
-string IDC777::GetUniqueConfigExpectedString(UniqueConfigSettings_t configOption, bool* notImplemented)
+string IDC777::GetUniqueConfigExpectedString(UniqueConfigSettings_t configOption, bool *notImplemented)
 {
     *notImplemented = false;
 
-    switch(configOption)
+    switch (configOption)
     {
-        case UNIQUE_CONFIG_SETTING_DIGITAL_AUDIO_PARAMS: 
+        case UNIQUE_CONFIG_SETTING_DIGITAL_AUDIO_PARAMS:
         {
             return GetExpectedDigitalAudioParamsString();
-            break;
         }
         case UNIQUE_CONFIG_SETTING_AUTO_CONNECTION:
         {
             // 0 -  No Auto Connect, 1 - Auto Connect to all devices in paired device list
-            // 3 - Number of times we try to auto connect. 1-7, 7 means unlimited  
+            // 3 - Number of times we try to auto connect. 1-7, 7 means unlimited
             return "0 3";
-            break;
         }
         case UNIQUE_CONFIG_SETTTING_CODEC:
         {
-            return string("") + \
-                // APTX Classic in Rx Mode A2DP Sink
-                "ON" + " " +
-                // APT HD Codec in Receive Mode - A2DP Sink
-                "ON" + " " +
-                // Enabled APTX Adaptive (Lossless for IDC777) in Rx Mode
-                "ON" + " " +
-                // Aptx Classic in Transmit
-                "ON" + " " +
-                // APTX HD Codec in Transmit Mode
-                "ON" + " " +
-                // Enabled APTX Adaptive (Lossless for IDC777) in Tx Mode
-                "ON";
-            break;
+            return string("") + // APTX Classic in Rx Mode A2DP Sink
+                   "ON" + " " +
+                   // APT HD Codec in Receive Mode - A2DP Sink
+                   "ON" + " " +
+                   // Enabled APTX Adaptive (Lossless for IDC777) in Rx Mode
+                   "ON" + " " +
+                   // Aptx Classic in Transmit
+                   "ON" + " " +
+                   // APTX HD Codec in Transmit Mode
+                   "ON" + " " +
+                   // Enabled APTX Adaptive (Lossless for IDC777) in Tx Mode
+                   "ON";
         }
         case UNIQUE_CONFIG_SETTING_GPIO_CONFIG:
         {
@@ -147,11 +137,10 @@ string IDC777::GetUniqueConfigExpectedString(UniqueConfigSettings_t configOption
             // Discoverable State - LED 2 flashes every 200ms
             return "ON";
         }
-                case UNIQUE_CONFIG_SETTING_SHORT_NAME:
+        case UNIQUE_CONFIG_SETTING_SHORT_NAME:
         {
             // Not sure why - This will be removed later for storing serial number, rev, and mod
             return "IA " + string(&m_PublicAddress[7]);
-            break;
         }
         case UNIQUE_CONFIG_SETTING_PROFILES:
         {
@@ -164,8 +153,7 @@ string IDC777::GetUniqueConfigExpectedString(UniqueConfigSettings_t configOption
             string maxBleConnections = "0";
             string maxSppConnections = "0";
 
-            return 
-                   multipleConnections + " " +
+            return multipleConnections + " " +
                    maxHfpConnections + " " +
                    maxAghfpConnections + " " +
                    maxA2dpSinkConnections + " " +
@@ -173,13 +161,10 @@ string IDC777::GetUniqueConfigExpectedString(UniqueConfigSettings_t configOption
                    maxAvrcpConnections + " " +
                    maxBleConnections + " " +
                    maxSppConnections;
-
-            break;
         }
         case UNIQUE_CONFIG_SETTINGS_BT_STATE:
         {
             return "0 0 0";
-            break;
         }
         case UNIQUE_CONFIG_SETTING_LED_ENABLE:
         case UNIQUE_CONFIG_SETTING_DEVICE_ID:
@@ -189,12 +174,11 @@ string IDC777::GetUniqueConfigExpectedString(UniqueConfigSettings_t configOption
         {
             *notImplemented = true;
             return "";
-            break;
         }
     }
 }
 
-string IDC777::GetUniqueConfigSettingString(UniqueConfigSettings_t configOption, bool* notImplemented)
+string IDC777::GetUniqueConfigSettingString(UniqueConfigSettings_t configOption, bool *notImplemented)
 {
     if (notImplemented)
     {
@@ -205,17 +189,15 @@ string IDC777::GetUniqueConfigSettingString(UniqueConfigSettings_t configOption,
     {
         case UNIQUE_CONFIG_SETTINGS_BT_STATE:
             return "BT_CONFIG";
-            break;
         default:
             *notImplemented = true;
             return "";
-            break;
     }
 }
 
 ERROR_CODE_T IDC777::GetDeviceCfgRemoteAddress(string &remoteAddress)
 {
-    DebugPrintf(DEBUG_TRACE_INFO, DEBUG_TRACE_INFO, m_debugId, "Get Paired Device Function not Implemented\n");
+    DebugPrintf(DEBUG_TRACE, DEBUG_TRACE, m_DebugId.c_str(), "Get Paired Device Function not Implemented\n");
     remoteAddress = "";
     return STATUS_SUCCESS;
 }

@@ -20,23 +20,20 @@ const CToneControl::TONE_SEGMENT_T CToneControl::s_TorgoThemeSong[] =
         {"TONE TE 180 TI 6 N F6 L 4 N E6 L 4 N B5 L 4 N C6 L 4", OS_TICKS_PER_SEC}};
 
 const CToneControl::TONE_SEGMENT_T CToneControl::s_SampleToneFromDatasheet[] =
-{
-    {"TONE TE 400 V 64 TI 0 N C5 L 8 N R0 L 32 N E5 L 8 N R0 L 32 N G5 L 8 N R0 L 32 N B5 L 4 N R0 L 1 N C6 L 2 TN C6 L 8", OS_TICKS_PER_SEC}};
+    {
+        {"TONE TE 400 V 64 TI 0 N C5 L 8 N R0 L 32 N E5 L 8 N R0 L 32 N G5 L 8 N R0 L 32 N B5 L 4 N R0 L 1 N C6 L 2 TN C6 L 8", OS_TICKS_PER_SEC}};
 
 const CToneControl::TONE_SEGMENT_T CToneControl::s_BatmanTheme[] =
-{
-    //                dun    nu     nu     nu     nu     nu      BAT     MAN!
-    {"TONE TE 320 TI 1 V 128 D 10 N G4 L 8 N A4 L 8 N G4 L 8 N A4 L 8 N G4 L 8 N A4 L 8 N D5 L 4 N C5 L 2", OS_TICKS_PER_SEC * 2}
-};
-
+    {
+        //                dun    nu     nu     nu     nu     nu      BAT     MAN!
+        {"TONE TE 320 TI 1 V 128 D 10 N G4 L 8 N A4 L 8 N G4 L 8 N A4 L 8 N G4 L 8 N A4 L 8 N D5 L 4 N C5 L 2", OS_TICKS_PER_SEC * 2}};
 
 const CToneControl::SONG_T CToneControl::s_SongList[] =
     {
         {1, s_BatmanTheme, "Batman"},
         {1, s_SampleToneFromDatasheet, "Datasheet"},
         {3, s_DalmatianSong, "Dalmatian"},
-        {1, s_TorgoThemeSong, "Torgo"}
-    };
+        {1, s_TorgoThemeSong, "Torgo"}};
 
 /********************************************************************************************************
                                     Constructor
@@ -66,7 +63,7 @@ ERROR_CODE_T CToneControl::PlayNextMusicSequence(weak_ptr<BTASerialDevice> seria
 ********************************************************************************************************/
 ERROR_CODE_T CToneControl::SendNextSequenceCommand(weak_ptr<BTASerialDevice> serialDevice)
 {
-   
+
     RETURN_IF_FAILED(serialDevice.lock()->WriteData(s_SongList[m_CurSongIdx].pSegments[m_CurToneIdx].Command));
     SelectNextSequence();
 

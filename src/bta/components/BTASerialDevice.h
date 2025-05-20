@@ -1,3 +1,5 @@
+#pragma once
+
 /********************************************************************************************************
     File Name:  BtaSerialDevice.h
 
@@ -5,27 +7,30 @@
                 It is used to communicate with a serial device over Bluetooth.
 
 ********************************************************************************************************/
-#pragma once
 
-#ifdef __x86_64__
+#ifdef __x86_64_
 using namespace std;
+#include "iuart.h"
+#else
+#include "CPPInterfaces.h"
+#include <weak_ptr.hpp>
 #endif
 
-#include <string>
+#include <list>
 #include <map>
-#include <list>
+#include <string>
 #include <vector>
-#include <list>
 
-#include "types.h"
-#include "iuart.h"
-#include "TimeDelta.h"
+
 #include "CriticalSection.h"
 #include "Observable.h"
+#include "TimeDelta.h"
+#include "types.h"
+
 
 class BTASerialDevice
 {
-public:
+  public:
     BTASerialDevice(void);
     ~BTASerialDevice();
 
@@ -46,7 +51,7 @@ public:
 
     // Will read the config option, verify the response, and write the data back to the device if it's not set
     // Will verify that it was set correctly
-    virtual ERROR_CODE_T ReadVerifyWriteCfgData(const string cfgOption, string expectedResult, bool* optionWasSet);
+    virtual ERROR_CODE_T ReadVerifyWriteCfgData(const string cfgOption, string expectedResult, bool *optionWasSet);
 
     virtual ERROR_CODE_T GetCfgValue(string &outString, const string cfgOption);
     virtual ERROR_CODE_T SetCfgValue(string cfgOption, string value, bool ignoreResponse = false);
@@ -70,7 +75,7 @@ public:
     virtual ERROR_CODE_T ReceiveData(list<string> &responses, INT32U timeoutMS = 450, const list<string> &expectedResponses = GetDefaultList());
     virtual string Utf8Decode(string utf8EncodedString);
 
-private:
+  private:
     static list<string> GetDefaultList(void)
     {
         list<string> defaultList;
@@ -80,7 +85,7 @@ private:
     ERROR_CODE_T ProcessUnsolicitedMessage(string command);
 
     CHAR8 Utf8DecodeChar(string utf8EncodedChar);
-    bool CommandIsInList(const string &command, const list<string> &commandList);
+    BOOLEAN CommandIsInList(const string &command, const list<string> &commandList);
 
     /****************************************************************************************************
         Melody Audio Error Code Translation
@@ -102,12 +107,12 @@ private:
     static const INT32U s_defaultResponseTimeout = 1000;    // 1 second
     static const INT32U s_defaultInterByteGapTimeout = 100; // 100 ms
 
-    ICriticalSection m_CS;
-    
+    CCriticalSection m_CS;
+
     INT8U m_CardNumber;
-    bool m_IsCommEnabled;
-    bool m_CancelCurrentCommand;
-    bool m_DiscardReceivedData;
+    BOOLEAN m_IsCommEnabled;
+    BOOLEAN m_CancelCurrentCommand;
+    BOOLEAN m_DiscardReceivedData;
 
     INT8U m_PacketVerbosity;
     CHAR8 m_DebugID[OS_TASK_NAME_SIZE];

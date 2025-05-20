@@ -4,7 +4,11 @@
 
 #include "types.h"
 
+#ifdef __86_64__
 using namespace std;
+#endif
+
+/*
 
 class IBTAdapterStatusTable {
 public:
@@ -22,3 +26,5 @@ public:
     virtual bool IsIABluetoothAdapter(string btAddress) = 0;
     virtual bool IsPairedToIABluetoothAdapter(string btAddress) = 0;
 };
+
+*/

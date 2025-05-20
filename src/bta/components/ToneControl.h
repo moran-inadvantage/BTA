@@ -7,12 +7,13 @@ class for defining tone signals.
 
 #include "BTASerialDevice.h"
 
-#include "types.h"
 #include "TimeDelta.h"
+#include "types.h"
+
 
 class CToneControl
 {
-    public:
+  public:
     CToneControl(void);
 
     ERROR_CODE_T PlayNextMusicSequence(weak_ptr<BTASerialDevice> serialDevice);
@@ -20,7 +21,7 @@ class CToneControl
     ERROR_CODE_T SetSongIndex(INT8U songIndex);
     ERROR_CODE_T GetSongIndex(INT8U &songIndexOut);
 
-    private:
+  private:
     ERROR_CODE_T SendNextSequenceCommand(weak_ptr<BTASerialDevice> serialDevice);
     void SelectNextSequence(void);
 

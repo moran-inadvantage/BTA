@@ -1,21 +1,30 @@
 #pragma once
 
+/********************************************************************************************************
+    File Name:  BTAPairingManager.h
+
+    Notes:      This class is used to manage the pairing of Bluetooth devices.
+                It handles the scanning, pairing, and connection of Bluetooth devices.
+                It also manages the list of paired devices and their names.
+
+********************************************************************************************************/
+
 #ifdef __x86_64__
 using namespace std;
 #endif
 
-#include <string>
+#include <list>
 #include <map>
-#include <list>
+#include <string>
 #include <vector>
-#include <list>
 
-#include "types.h"
-#include "iuart.h"
-#include "TimeDelta.h"
+
+#include "BTASerialDevice.h"
 #include "CriticalSection.h"
 #include "Observable.h"
-#include "BTASerialDevice.h"
+#include "TimeDelta.h"
+#include "types.h"
+
 
 class CBTEAPairedDevice
 {
@@ -54,12 +63,13 @@ class CBTEADetectedDevice
 
 class CBTAPairingManager
 {
-public:
-    CBTAPairingManager(shared_ptr<BTASerialDevice> BTASerialDevice) : m_pBTASerialDevice(BTASerialDevice),
-        m_scanAbort(false), m_receivedOpenNotification(false), m_currentCOD(""),
-        m_scanState(SS_INIT), m_scanTimer(0)
+  public:
+    CBTAPairingManager(shared_ptr<BTASerialDevice> BTASerialDevice)
+        : m_pBTASerialDevice(BTASerialDevice),
+          m_scanAbort(false), m_receivedOpenNotification(false), m_currentCOD(""),
+          m_scanState(SS_INIT), m_scanTimer(0), m_LogId("BTAPairingManager")
     {
-    };
+    }
 
     // Have we received an open notification from the BTASerialDevice since our last check
     virtual BOOLEAN IsNewDeviceConnected(void);
@@ -79,16 +89,23 @@ public:
     // Removes all of our paired devices and resets our paired device list
     virtual ERROR_CODE_T UnpairAllDevices();
 
+    // Attempts to open a connection with the specifed bt address, and returns the link id
     virtual ERROR_CODE_T OpenConnection(string btAddress, string &linkIdOut);
+
+    // Attempts to pair with the specifed bt address, and returns the link id
     virtual ERROR_CODE_T PairDevice(string btAddress, string &linkIdOut);
+
+    // Pairs with a device that is in the connected device list
     virtual ERROR_CODE_T PairToConnectedDevice();
 
+    // Closes the connection with the link id specified
     virtual ERROR_CODE_T CloseConnection(string linkId);
 
     virtual ERROR_CODE_T UpdatePairedDeviceList(void);
+
     virtual ERROR_CODE_T RequestConnectionToDefaultDevice(void);
 
-    virtual ERROR_CODE_T OnOpenNotificationReceived(bool state);
+    virtual ERROR_CODE_T OnOpenNotificationReceived(BOOLEAN state);
 
     virtual void ResetStateMachine();
 
@@ -147,8 +164,9 @@ public:
         m_DeviceMode = mode;
     }
 
-    Observable <void> PairedDeviceListUpdated;
-private:
+    Observable<void> PairedDeviceListUpdated;
+
+  private:
     shared_ptr<BTASerialDevice> m_pBTASerialDevice;
     map<string, string> m_deviceNameMap;
     static const CHAR8 *s_InquireCODList[];
@@ -181,7 +199,9 @@ private:
     list<shared_ptr<CBTEAPairedDevice> > m_pairedDeviceInfo;
     list<shared_ptr<CBTEADetectedDevice> > m_detectedDeviceList;
 
-    ICriticalSection m_CS;
+    string m_LogId;
+
+    CCriticalSection m_CS;
 
     void ClearPairedDeviceFoundFlags(void);
     ERROR_CODE_T PerformBackgroundDeviceNameRetrieval(void);

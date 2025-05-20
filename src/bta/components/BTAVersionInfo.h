@@ -2,10 +2,14 @@
 
 #include "types.h"
 
-#include <memory>
 #include <string>
 
+#ifdef __86_64__
 using namespace std;
+#include <memory>
+#else
+
+#endif
 
 typedef enum
 {
@@ -32,14 +36,15 @@ typedef enum
 
 class CBTAVersionInfo_t
 {
-public:
+  public:
     CBTAVersionInfo_t()
         : hardware(BTA_HW_UNKNOWN), major(0), minor(0), patch(0)
     {
     }
     // If you add anything below, update CopyInto
     BTAHardware_t hardware;
-    union {
+    union
+    {
         BC127FirmwareRevision_t BC127FwRev;
         IDC777FirmwareRevision_t IDC777fwRev;
     };
@@ -54,23 +59,18 @@ public:
     {
         switch (hardware)
         {
-        case BTA_HW_BC127:
-            return "BC127";
-        case BTA_HW_IDC777:
-            return "IDC777";
-        default:
-            return "Unknown";
+            case BTA_HW_BC127:
+                return "BC127";
+            case BTA_HW_IDC777:
+                return "IDC777";
+            default:
+                return "Unknown";
         }
     }
 
     string PrintBuildInfo()
     {
-        return string("BTDevice: ") \
-            + GetHardwareVersionString() \
-            + ": " + to_string(major) \
-            + "." + to_string(minor) \
-            + "." + to_string(patch) \
-            + ":" + buildNumber;
+        return string("BTDevice: ") + GetHardwareVersionString() + ": " + to_string(major) + "." + to_string(minor) + "." + to_string(patch) + ":" + buildNumber;
     }
 
     bool IsValid()
@@ -78,9 +78,10 @@ public:
         return hardware != BTA_HW_UNKNOWN && !versionString.empty();
     }
 
-    void CopyInto(shared_ptr<CBTAVersionInfo_t>& version)
+    void CopyInto(shared_ptr<CBTAVersionInfo_t> &version)
     {
-        if (!version) return;
+        if (!version)
+            return;
 
         version->hardware = this->hardware;
         version->major = this->major;
@@ -94,7 +95,8 @@ public:
         if (hardware == BTA_HW_IDC777)
         {
             version->IDC777fwRev = this->IDC777fwRev;
-        } else if (hardware == BTA_HW_BC127)
+        }
+        else if (hardware == BTA_HW_BC127)
         {
             version->BC127FwRev = this->BC127FwRev;
         }

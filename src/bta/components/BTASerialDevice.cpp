@@ -1,5 +1,6 @@
-#include <string.h>
 #include <cstdarg>
+#include <string.h>
+
 
 #include "BTASerialDevice.h"
 #include "BTAStatusTable.h"
@@ -110,7 +111,6 @@ const CHAR8 *BTASerialDevice::s_UnsolictedCommands[] =
         "SR",
 };
 
-
 /********************************************************************************************************
                                ERROR_CODE_T SetUArt(IUart *pUart)
     Sets the IUart that will be used for communication.
@@ -147,12 +147,12 @@ ERROR_CODE_T BTASerialDevice::SetBaudrate(BAUDRATE baudrate)
 {
     shared_ptr<IUart> pUart = m_pUart.lock();
     RETURN_EC_IF_NULL(ERROR_NOT_INITIALIZED, pUart);
-    
+
     if (m_curBaudrate == baudrate)
     {
         return STATUS_SUCCESS;
     }
-    
+
     RETURN_IF_FAILED(pUart->Close());
     RETURN_IF_FAILED(pUart->Open(baudrate, BYTE_SZ_8, NO_PARITY, STOP_BITS_1));
     m_curBaudrate = baudrate;
@@ -178,7 +178,7 @@ ERROR_CODE_T BTASerialDevice::SetCommEnable(bool enabled)
                                 bool IsCommEnabled( void )
     Returns the state of the Comm Enabled flag.
 ********************************************************************************************************/
-bool BTASerialDevice::IsCommEnabled(void)
+BOOLEAN BTASerialDevice::IsCommEnabled(void)
 {
     CSimpleLock myLock(&m_CS);
 
@@ -273,7 +273,7 @@ ERROR_CODE_T BTASerialDevice::ReadData(vector<string> &outStrings, string messag
     return STATUS_SUCCESS;
 }
 
-ERROR_CODE_T BTASerialDevice::ReadVerifyWriteCfgData(const string cfgOption, string expectedResult, bool* optionWasSet)
+ERROR_CODE_T BTASerialDevice::ReadVerifyWriteCfgData(const string cfgOption, string expectedResult, bool *optionWasSet)
 {
     string retString;
     *optionWasSet = false;
@@ -281,7 +281,7 @@ ERROR_CODE_T BTASerialDevice::ReadVerifyWriteCfgData(const string cfgOption, str
 
     if (retString.find(expectedResult) == string::npos)
     {
-        SetCfgValue(const_cast<CHAR8*>(cfgOption.c_str()), expectedResult.c_str());
+        SetCfgValue(const_cast<CHAR8 *>(cfgOption.c_str()), expectedResult.c_str());
     }
 
     // Verify we set it correctly
@@ -340,12 +340,11 @@ ERROR_CODE_T BTASerialDevice::SimulateConnectivityLoss(bool connectionLost)
     return STATUS_SUCCESS;
 }
 
-ERROR_CODE_T BTASerialDevice::SetCfgValue(string cfgOption, string value,  bool ignoreResponse)
+ERROR_CODE_T BTASerialDevice::SetCfgValue(string cfgOption, string value, bool ignoreResponse)
 {
     string setString = "Set " + cfgOption + "=" + value;
     return WriteData(setString, ignoreResponse);
 }
-
 
 /********************************************************************************************************
                 ERROR_CODE_T GetCfgValue( string &outString, const string &cfgOption )
@@ -396,7 +395,7 @@ ERROR_CODE_T BTASerialDevice::WriteData(string data, bool ignoreResponse)
 
         INT32U writeLength = 0;
         // Send out the message string.
-        DebugPrintf(DEBUG_TRACE_INFO, DEBUG_TRACE_INFO, m_DebugID, "Sending Message: %s", (unsigned char *)m_TxBuffer);
+        DebugPrintf(DEBUG_TRACE, DEBUG_TRACE, m_DebugID, "Sending Message: %s", (unsigned char *)m_TxBuffer);
         pUart->WritePort((unsigned char *)m_TxBuffer, strLength, &writeLength);
 
         if (strLength != writeLength)
@@ -424,7 +423,7 @@ ERROR_CODE_T BTASerialDevice::WriteData(string data, bool ignoreResponse)
 
 /********************************************************************************************************
 ********************************************************************************************************/
-bool BTASerialDevice::CommandIsInList(const string &command, const list<string> &commandList)
+BOOLEAN BTASerialDevice::CommandIsInList(const string &command, const list<string> &commandList)
 {
     list<string>::const_iterator it;
     for (it = commandList.begin(); it != commandList.end(); it++)
@@ -439,7 +438,6 @@ bool BTASerialDevice::CommandIsInList(const string &command, const list<string> 
 
     return false;
 }
-
 
 /********************************************************************************************************
 ERROR_CODE_T CBTEAComm::ReceiveData(list<string> &responses, INT32U timeoutMS = 200, const list<string> &expectedResponses = GetDefaultList())
