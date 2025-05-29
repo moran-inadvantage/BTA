@@ -1,9 +1,11 @@
 #include <memory>
 
-#include "uart.h"
-#include "BTADeviceFactory.h"
+#include "../External/cxxopts/include/cxxopts.hpp"
+
 #include "BTADeviceDriver.h"
+#include "BTADeviceFactory.h"
 #include "BTASerialDevice.h"
+#include "uart.h"
 
 typedef enum
 {
@@ -28,24 +30,64 @@ void doAppSetup()
     m_TestModeTimer.ResetTime(0);
     m_inquiryActive = false;
 }
+static int port;
+static AppState_t appMode = OutputDevice;
 
-int main()
+void doArgParse(int argc, char *argv[])
 {
+    cxxopts::Options options("MyApp", "Bluetooth Audio Device Controller");
+
+    options.add_options()("p,port", "Port number", cxxopts::value<int>()->default_value("0"))("m,mode", "Operating mode: input, output, qual, play", cxxopts::value<std::string>())("h,help", "Print usage");
+
+    auto result = options.parse(argc, argv);
+
+    if (result.count("help"))
+    {
+        std::cout << options.help() << std::endl;
+        return;
+    }
+
+    port = result["port"].as<int>();
+    appMode = OutputDevice;
+
+    if (result.count("mode"))
+    {
+        string modeStr = result["mode"].as<std::string>();
+        if (modeStr == "input")
+            appMode = InputDevice;
+        if (modeStr == "output")
+            appMode = OutputDevice;
+        if (modeStr == "qual")
+            appMode = QualMode;
+        if (modeStr == "play")
+            appMode = PlayActiveSong;
+    }
+
+    std::cout << "Using port: " << port << std::endl;
+    std::cout << "Using mode: " << appMode << std::endl;
+}
+
+int main(int argc, char *argv[])
+{
+    doArgParse(argc, argv);
+
     doAppSetup();
 
-    shared_ptr<IUart> uart = make_shared<CuArt>(0);
- 
-    printf("Discovering BTA Device\r\n");
+    printf("Creating UART on port %d\r\n", port);
+    shared_ptr<IUart> uart = make_shared<CuArt>(port);
 
-    shared_ptr<IBTADeviceDriver> pBtaDeviceDriver = BTADeviceFactory::CreateBTADeviceDriver(uart);
-    if (pBtaDeviceDriver == NULL)
+    printf("Discovering BTA Device\r\n");
+    shared_ptr<IBTADeviceDriver> pBtaDeviceDriver;
+    if (FAILED(CBTADeviceFactory::CreateBTADeviceDriver(uart, pBtaDeviceDriver)))
     {
         printf("Failed to create IBTADeviceDriver\n");
         return -1;
     }
 
+    printf("Performing factory reset\r\n");
+    pBtaDeviceDriver->FactoryReset();
+
     printf("Running IBTADeviceDriver\r\n");
- 
     pBtaDeviceDriver->InitializeDeviceConfiguration();
     pBtaDeviceDriver->SetDeviceMode(BTA_DEVICE_MODE_INPUT);
 
@@ -96,7 +138,6 @@ void doMainTask(shared_ptr<IBTADeviceDriver> pBtaDeviceDriver, AppState_t state)
         }
     }
 
-    
     if (state == QualMode || state == PlayActiveSong)
     {
         if (pBtaDeviceDriver->PlayNextMusicSequence() != STATUS_SUCCESS)

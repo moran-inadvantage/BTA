@@ -6,10 +6,9 @@
                 "${workspaceFolder}/src",
                 "${workspaceFolder}/src/platform/linux_x86/",
                 "${workspaceFolder}/src/platform/linux_x86/interfaces",
-                "${workspaceFolder}/src/bta",
-                "${workspaceFolder}/src/bta/components",
-                "${workspaceFolder}/src/bta/devices",
-                "${workspaceFolder}/src/bta/interfaces",
+                "${workspaceFolder}/AVDS/Components/IO/SecondaryDevices/BTA",
+                "${workspaceFolder}/AVDS/Components/IO/SecondaryDevices/BTA/components",
+                "${workspaceFolder}/AVDS/Components/IO/SecondaryDevices/BTA/devices",
                 "${workspaceFolder}/External/googletest/googletest/include",
                 "${workspaceFolder}/External/googletest/googlemock/include"
             ],

@@ -1,0 +1,61 @@
+name: Build and upload
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-run:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        token: ${{ secrets.PAT_TOKEN }}
+
+    - name: Configure project with CMake
+      run: cmake -S . -B build
+
+    - name: Build project
+      run: cmake --build build
+
+    - name: Upload BTAudioCard binary
+      if: success()
+      uses: actions/upload-artifact@v4
+      with:
+        name: BTAudioCard
+        path: build/BTAudioCard
+
+  hil-test:
+    needs: build
+    runs-on: [self-hosted, BTA_HIL]
+
+    steps:
+    - name: Download BTAudioCard
+      uses: actions/download-artifact@v4
+      with:
+        name: BTAudioCard
+        path: ./artifacts
+
+    - name: Download bta_device_tests
+      uses: actions/download-artifact@v4
+      with:
+        name: bta_device_tests
+        path: ./artifacts
+
+    - name: Make test binary executable
+      run: chmod +x ./artifacts/bta_device_tests
+
+    - name: Run tests on all ttyUSB devices
+      run: |
+        for device in /dev/ttyUSB*; do
+          if [ -e "$device" ]; then
+            echo "Running tests on $device..."
+            ./artifacts/bta_device_tests --device="$device" || echo "Test failed on $device"
+          else
+            echo "No ttyUSB devices found."
+          fi
+        done

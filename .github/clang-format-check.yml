@@ -1,0 +1,72 @@
+name: clang-format-check
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  formatting-check:
+    name: Formatting Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Ensures history for diff
+          submodules: recursive
+          token: ${{ secrets.PAT_TOKEN }}
+
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v46
+
+      - name: Filter Diffs
+        run: |
+          diff_file_name="diff.txt"
+          include_ext="\.(h|c|cpp|hpp)$"
+
+          # Grab changed files
+          unfiltered_files_changed=$(echo -e "${{ steps.changed-files.outputs.all_changed_files }}" | tr " " "\n")
+          echo -e "Unfiltered files changed are: \n${unfiltered_files_changed}\n\n"
+
+          # Filter for directories and extensions
+          filtered_files_changed="$(echo -e "${unfiltered_files_changed}" \
+            | grep -E "${include_dirs}" \
+            | grep -E "${include_ext}" \
+            | grep -vE "${exclude_dirs}" \
+          || true)"
+
+          # Always include BTA files
+          bta_files=$(find external/AVDS/Components/IO/SecondaryDevices/BTA -type f \( -name "*.h" -o -name "*.c" -o -name "*.cpp" \))
+
+          # Combine all targets
+          echo -e "${filtered_files_changed}\n${product_files}\n${bta_files}" | sort -u > ${diff_file_name}
+
+          echo -e "Files running clang-format over are: \n$(cat ${diff_file_name})\n"
+          echo "DIFF_FILE=${diff_file_name}" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Run clang-format style check
+        uses: Innovative-Advantage/ia-clang-format-action@v1.0.1
+        with:
+          clang-format-version: '13'
+          file-list: ${{ env.DIFF_FILE }}
+
+      - name: Run markdown lint
+        uses: docker://avtodev/markdown-lint:v1
+        with:
+          args: '**/*.md'
+          check-path: .
+
+      - name: Check for new lines
+        run: |
+          NEW_LINE_FAIL=0
+          file_list="${{ env.DIFF_FILE }}"
+          while IFS= read -r file; do
+            if [ -f "$file" ]; then
+              if [ "$(tail -c 1 "$file" | wc -l)" -eq 0 ]; then
+                echo "Missing newline at end of file: $file"
+                NEW_LINE_FAIL=1
+              fi
+            fi
+          done < "$file_list"
+          exit ${NEW_LINE_FAIL}

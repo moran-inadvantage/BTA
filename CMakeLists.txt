@@ -26,6 +26,9 @@ if(ENABLE_TESTS STREQUAL ON)
 #    add_subdirectory(test)
 endif()
 
+# Add subdirectory for BTA library
+add_subdirectory(external/AVDS/Components/IO/SecondaryDevices/BTA)
+
 # Add executable
 add_executable(BTAudioCard ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp)
 # Link libraries
